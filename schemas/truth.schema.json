@@ -1,0 +1,99 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Truth Schema",
+  "description": "Defines the structure of a truth/canonical truth file",
+  "type": "object",
+  "required": ["case_id", "timeline", "facts", "culprit"],
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "Schema reference"
+    },
+    "case_id": {
+      "type": "string",
+      "pattern": "^case_[0-9]{3}$",
+      "description": "Reference to the case this truth belongs to"
+    },
+    "_case_ref": {
+      "type": "string",
+      "description": "File path reference to parent case"
+    },
+    "timeline": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["time", "event"],
+        "properties": {
+          "time": {
+            "type": "string",
+            "pattern": "^[0-2][0-9]:[0-5][0-9]$",
+            "description": "Time in HH:MM format"
+          },
+          "event": {
+            "type": "string",
+            "description": "What happened at this time"
+          },
+          "witness": {
+            "type": "string",
+            "description": "Witness involved (optional)"
+          },
+          "location": {
+            "type": "string",
+            "description": "Location of event (optional)"
+          }
+        }
+      },
+      "description": "Chronological timeline of actual events"
+    },
+    "facts": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "truth"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^fact_[0-9]{3}$",
+            "description": "Unique fact identifier"
+          },
+          "truth": {
+            "type": "string",
+            "description": "The actual truth about this fact"
+          },
+          "category": {
+            "type": "string",
+            "enum": ["location", "action", "evidence", "witness", "motive", "opportunity"],
+            "description": "Category of fact (optional)"
+          },
+          "related_statement": {
+            "type": "string",
+            "description": "Statement this fact contradicts (optional)"
+          }
+        }
+      },
+      "description": "Array of true facts about the case"
+    },
+    "culprit": {
+      "type": "string",
+      "description": "ID of the actual culprit"
+    },
+    "motive": {
+      "type": "string",
+      "description": "The culprit's motive (optional)"
+    },
+    "method": {
+      "type": "string",
+      "description": "How the crime was committed (optional)"
+    },
+    "hidden_clues": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Clues only discoverable through investigation (optional)"
+    }
+  },
+  "additionalProperties": true
+}

@@ -1,0 +1,33 @@
+{
+  "id": "prosecutor_valen",
+
+  "role": "prosecutor",
+
+  "name": "Lucien Valen",
+
+  "personality": {
+    "aggression": 9,
+    "confidence": 10,
+    "composure": 8,
+    "sarcasm": 7
+  },
+
+  "speech_style": {
+    "formality": 8,
+    "verbosity": 7,
+    "emotion": 5
+  },
+
+  "debate_strategy": {
+    "prefers": [
+      "logical_traps",
+      "timeline_pressure"
+    ]
+  },
+
+  "behavior_rules": [
+    "Interrupt weak arguments.",
+    "Exploit contradictions aggressively.",
+    "Pressure witnesses psychologically."
+  ]
+}

@@ -1,0 +1,48 @@
+{
+  "$schema": "../../schemas/testimony.schema.json",
+  "id": "testimony_julia_1",
+  "_case_ref": "./case_001.json",
+  "_witness_ref": "./witnesses/witness_001.json",
+
+  "witness_id": "witness_julia",
+
+  "topic": "Night of the murder",
+
+  "statements": [
+    {
+      "id": "stmt_1",
+
+      "text": "I arrived at the university around 9 PM.",
+
+      "emotion": "calm",
+
+      "can_press": true,
+
+      "press_response": "I remember checking my watch."
+    },
+
+    {
+      "id": "stmt_2",
+
+      "text": "The hallway lights were already off.",
+
+      "emotion": "nervous",
+
+      "can_press": true,
+
+      "press_response": "It was difficult to see anything."
+    },
+
+    {
+      "id": "stmt_3",
+
+      "text": "I never saw the victim that night.",
+
+      "emotion": "defensive",
+
+      "contradicted_by": "security_photo",
+
+      "truthfulness": false
+    }
+  ]
+}

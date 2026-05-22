@@ -1,0 +1,81 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Character Schema",
+  "description": "Defines the structure of character files (judge, prosecutor, etc.)",
+  "type": "object",
+  "required": ["id", "role", "name"],
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "Schema reference"
+    },
+    "id": {
+      "type": "string",
+      "description": "Unique character identifier"
+    },
+    "role": {
+      "type": "string",
+      "enum": ["judge", "prosecutor", "defense_attorney", "defendant", "officer"],
+      "description": "Role of this character in the case"
+    },
+    "name": {
+      "type": "string",
+      "description": "Character's full name"
+    },
+    "title": {
+      "type": "string",
+      "description": "Professional title or honorific (optional)"
+    },
+    "description": {
+      "type": "string",
+      "description": "Character description or background (optional)"
+    },
+    "personality": {
+      "type": "object",
+      "properties": {
+        "bias": {
+          "type": "string",
+          "description": "Any bias the character may have"
+        },
+        "strictness": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10,
+          "description": "How strict/lenient they are (1-10)"
+        },
+        "fairness": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10,
+          "description": "Perception of fairness (1-10)"
+        }
+      },
+      "description": "Personality traits"
+    },
+    "responses": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      },
+      "description": "Predefined responses for various scenarios"
+    },
+    "speech_style": {
+      "type": "object",
+      "properties": {
+        "formality": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10,
+          "description": "Level of formality (1-10)"
+        },
+        "tone": {
+          "type": "string",
+          "enum": ["authoritative", "neutral", "lenient", "harsh"],
+          "description": "Typical speaking tone"
+        }
+      },
+      "description": "How this character speaks"
+    }
+  },
+  "additionalProperties": true
+}

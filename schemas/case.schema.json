@@ -1,0 +1,152 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Case Schema",
+  "description": "Defines the structure of a case file",
+  "type": "object",
+  "required": ["id", "title", "difficulty", "summary", "canonical_truth_id", "phases"],
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "Schema reference"
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^case_[0-9]{3}$",
+      "description": "Unique case identifier"
+    },
+    "title": {
+      "type": "string",
+      "description": "Case title"
+    },
+    "difficulty": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 5,
+      "description": "Case difficulty level (1-5)"
+    },
+    "summary": {
+      "type": "string",
+      "description": "Brief case summary"
+    },
+    "canonical_truth_id": {
+      "type": "string",
+      "pattern": "^truth_case_[0-9]{3}$",
+      "description": "Reference to the truth file for this case"
+    },
+    "_truth_ref": {
+      "type": "string",
+      "description": "File path reference to truth document"
+    },
+    "_evidence_ref": {
+      "type": "string",
+      "description": "File path reference to evidence document"
+    },
+    "_testimonies_ref": {
+      "type": "string",
+      "description": "File path reference to testimonies document"
+    },
+    "_witnesses_ref": {
+      "type": "string",
+      "description": "Directory path reference to witnesses folder"
+    },
+    "phases": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "type"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique phase identifier"
+          },
+          "type": {
+            "type": "string",
+            "enum": ["INTRO", "INVESTIGATION", "TESTIMONY", "CROSS_EXAMINATION", "JUDGE_REACTION", "VERDICT"],
+            "description": "Phase type"
+          },
+          "scene": {
+            "type": "string",
+            "description": "Scene identifier (for INTRO)"
+          },
+          "locations": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Available locations (for INVESTIGATION)"
+          },
+          "evidence_unlocks": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Evidence IDs that can be unlocked"
+          },
+          "witness_id": {
+            "type": "string",
+            "description": "Witness identifier (for TESTIMONY/CROSS_EXAMINATION)"
+          },
+          "testimony_id": {
+            "type": "string",
+            "description": "Testimony identifier (for TESTIMONY)"
+          },
+          "contradictions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["statement_id", "correct_evidence"],
+              "properties": {
+                "statement_id": {
+                  "type": "string",
+                  "description": "Statement to contradict"
+                },
+                "correct_evidence": {
+                  "type": "string",
+                  "description": "Evidence ID that contradicts the statement"
+                },
+                "success": {
+                  "type": "object",
+                  "properties": {
+                    "next_phase": {
+                      "type": "string"
+                    },
+                    "penalty": {
+                      "type": "integer"
+                    }
+                  }
+                },
+                "failure": {
+                  "type": "object",
+                  "properties": {
+                    "penalty": {
+                      "type": "integer"
+                    },
+                    "judge_response": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            },
+            "description": "Contradictions to expose (for CROSS_EXAMINATION)"
+          },
+          "conditions": {
+            "type": "object",
+            "properties": {
+              "required_contradictions": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Conditions for verdict (for VERDICT)"
+          }
+        }
+      },
+      "description": "Array of case phases in order"
+    }
+  },
+  "additionalProperties": true
+}

@@ -1,0 +1,131 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Witness Schema",
+  "description": "Defines the structure of a witness file",
+  "type": "object",
+  "required": ["id", "role", "name", "personality"],
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "Schema reference"
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^witness_[a-z_]+$",
+      "description": "Unique witness identifier"
+    },
+    "_case_ref": {
+      "type": "string",
+      "description": "File path reference to parent case"
+    },
+    "role": {
+      "type": "string",
+      "enum": ["witness", "suspect", "defendant", "victim", "officer"],
+      "description": "Role of this person in the case"
+    },
+    "name": {
+      "type": "string",
+      "description": "Full name of witness"
+    },
+    "occupation": {
+      "type": "string",
+      "description": "Occupation or role (student, professor, etc.)"
+    },
+    "personality": {
+      "type": "object",
+      "required": [],
+      "properties": {
+        "confidence": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10,
+          "description": "Confidence level (1-10)"
+        },
+        "honesty": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10,
+          "description": "Honesty level (1-10)"
+        },
+        "anxiety": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10,
+          "description": "Anxiety level (1-10)"
+        },
+        "aggression": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10,
+          "description": "Aggression level (1-10)"
+        },
+        "intelligence": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10,
+          "description": "Intelligence level (1-10)"
+        }
+      },
+      "description": "Personality traits of the witness"
+    },
+    "hidden_information": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Information the witness may be hiding or not revealing"
+    },
+    "behavior_rules": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Behavioral patterns under questioning"
+    },
+    "speech_style": {
+      "type": "object",
+      "properties": {
+        "hesitation": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10,
+          "description": "Level of hesitation when speaking (1-10)"
+        },
+        "formality": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10,
+          "description": "Level of formality in speech (1-10)"
+        },
+        "dialect": {
+          "type": "string",
+          "description": "Dialect or speech pattern (optional)"
+        },
+        "verbose": {
+          "type": "boolean",
+          "description": "Whether witness tends to be verbose (optional)"
+        }
+      },
+      "description": "Characteristic speech style"
+    },
+    "relationship_to_victim": {
+      "type": "string",
+      "description": "Relationship to the victim (optional)"
+    },
+    "relationship_to_suspect": {
+      "type": "string",
+      "description": "Relationship to the suspect (optional)"
+    },
+    "alibi": {
+      "type": "string",
+      "description": "Witness's claimed alibi (optional)"
+    },
+    "credibility": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "Overall credibility score 0-1 (metadata, optional)"
+    }
+  },
+  "additionalProperties": true
+}

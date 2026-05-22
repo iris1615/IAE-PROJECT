@@ -1,0 +1,21 @@
+{
+  "$schema": "../../schemas/evidence.schema.json",
+  "id": "security_photo",
+  "_case_ref": "./case_001.json",
+
+  "name": "Security Camera Photo",
+
+  "description": "A hallway camera image taken at 21:15.",
+
+  "type": "PHOTO",
+
+  "reveals": [
+    "timestamp_inconsistency"
+  ],
+
+  "can_contradict": [
+    "stmt_3"
+  ],
+
+  "court_record_visible": true
+}

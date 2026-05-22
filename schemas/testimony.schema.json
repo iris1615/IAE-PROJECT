@@ -1,0 +1,77 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Testimony Schema",
+  "description": "Defines the structure of a testimony file",
+  "type": "object",
+  "required": ["id", "witness_id", "topic", "statements"],
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "Schema reference"
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^testimony_[a-z_]+_[0-9]+$",
+      "description": "Unique testimony identifier"
+    },
+    "_case_ref": {
+      "type": "string",
+      "description": "File path reference to parent case"
+    },
+    "_witness_ref": {
+      "type": "string",
+      "description": "File path reference to witness document"
+    },
+    "witness_id": {
+      "type": "string",
+      "pattern": "^witness_[a-z_]+$",
+      "description": "ID of the witness giving testimony"
+    },
+    "topic": {
+      "type": "string",
+      "description": "Main topic of this testimony"
+    },
+    "statements": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "text"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^stmt_[0-9]+$",
+            "description": "Unique statement identifier"
+          },
+          "text": {
+            "type": "string",
+            "description": "The actual statement text"
+          },
+          "emotion": {
+            "type": "string",
+            "enum": ["calm", "nervous", "defensive", "angry", "confused", "evasive", "confident"],
+            "description": "Emotional tone of the statement"
+          },
+          "can_press": {
+            "type": "boolean",
+            "description": "Whether this statement can be pressed during cross-examination"
+          },
+          "press_response": {
+            "type": "string",
+            "description": "Response when pressed (optional)"
+          },
+          "contradicted_by": {
+            "type": "string",
+            "description": "Evidence ID that contradicts this statement (optional)"
+          },
+          "truthfulness": {
+            "type": "boolean",
+            "description": "Whether statement is truthful (optional, metadata)"
+          }
+        }
+      },
+      "description": "Array of statements in the testimony"
+    }
+  },
+  "additionalProperties": true
+}

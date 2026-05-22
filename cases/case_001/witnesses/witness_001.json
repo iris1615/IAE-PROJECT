@@ -1,0 +1,31 @@
+{
+  "$schema": "../../../schemas/witness.schema.json",
+  "id": "witness_julia",
+  "_case_ref": "../case_001.json",
+
+  "role": "witness",
+
+  "name": "Julia Mendes",
+
+  "occupation": "Student",
+
+  "personality": {
+    "confidence": 3,
+    "honesty": 5,
+    "anxiety": 8
+  },
+
+  "hidden_information": [
+    "Was blackmailed by culprit."
+  ],
+
+  "behavior_rules": [
+    "Avoids eye contact under pressure.",
+    "Changes wording when cornered."
+  ],
+
+  "speech_style": {
+    "hesitation": 8,
+    "formality": 4
+  }
+}

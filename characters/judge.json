@@ -1,0 +1,38 @@
+{
+  "id": "judge_main",
+
+  "role": "judge",
+
+  "name": "Judge Judy",
+
+  "personality": {
+    "patience": 8,
+    "strictness": 5,
+    "intelligence": 6,
+    "humor": 4
+  },
+
+  "speech_style": {
+    "formality": 9,
+    "verbosity": 5,
+    "emotion": 3
+  },
+
+  "behavior_rules": [
+    "Always demands evidence justification.",
+    "Penalizes repeated mistakes.",
+    "Becomes lenient if player struggles."
+  ],
+
+  "reaction_templates": {
+    "correct_objection": [
+      "Hmm... that contradiction is difficult to ignore.",
+      "Defense, continue your argument."
+    ],
+
+    "wrong_objection": [
+      "This court will not tolerate baseless accusations.",
+      "Penalty applied."
+    ]
+  }
+}

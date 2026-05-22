@@ -1,0 +1,67 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Evidence Schema",
+  "description": "Defines the structure of an evidence file",
+  "type": "object",
+  "required": ["id", "name", "description", "type", "can_contradict", "court_record_visible"],
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "Schema reference"
+    },
+    "id": {
+      "type": "string",
+      "description": "Unique evidence identifier"
+    },
+    "_case_ref": {
+      "type": "string",
+      "description": "File path reference to parent case"
+    },
+    "name": {
+      "type": "string",
+      "description": "Display name of evidence"
+    },
+    "description": {
+      "type": "string",
+      "description": "Detailed description of evidence"
+    },
+    "type": {
+      "type": "string",
+      "enum": ["PHOTO", "DOCUMENT", "WEAPON", "OBJECT", "RECORDING", "NOTE"],
+      "description": "Type of evidence"
+    },
+    "reveals": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Information or clues this evidence reveals"
+    },
+    "can_contradict": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^stmt_[0-9]+$"
+      },
+      "description": "Array of statement IDs this evidence can contradict"
+    },
+    "court_record_visible": {
+      "type": "boolean",
+      "description": "Whether this evidence is visible in court records"
+    },
+    "location": {
+      "type": "string",
+      "description": "Where evidence was found (optional)"
+    },
+    "discovered_by": {
+      "type": "string",
+      "description": "Who discovered the evidence (optional)"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When evidence was discovered (optional)"
+    }
+  },
+  "additionalProperties": true
+}

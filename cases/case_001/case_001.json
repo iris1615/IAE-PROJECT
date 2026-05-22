@@ -1,0 +1,75 @@
+{
+  "$schema": "../../schemas/case.schema.json",
+  "id": "case_001",
+  "title": "The Name of the Title Is Hope",
+  "difficulty": 1,
+
+  "summary": "A university student is accused of murdering a professor.",
+
+  "canonical_truth_id": "truth_case_001",
+  "_truth_ref": "./truth_case_001.json",
+  "_evidence_ref": "./evidence.json",
+  "_testimonies_ref": "./testimonies.json",
+  "_witnesses_ref": "./witnesses/",
+
+  "phases": [
+    {
+      "id": "intro",
+      "type": "INTRO",
+      "scene": "courtroom_opening"
+    },
+
+    {
+      "id": "investigation_1",
+      "type": "INVESTIGATION",
+      "locations": [
+        "crime_scene",
+        "university_hall"
+      ],
+      "evidence_unlocks": [
+        "bloody_note",
+        "security_photo"
+      ]
+    },
+
+    {
+      "id": "testimony_1",
+      "type": "TESTIMONY",
+      "witness_id": "witness_julia",
+      "testimony_id": "testimony_julia_1"
+    },
+
+    {
+      "id": "cross_exam_1",
+      "type": "CROSS_EXAMINATION",
+      "witness_id": "witness_julia",
+
+      "contradictions": [
+        {
+          "statement_id": "stmt_3",
+          "correct_evidence": "security_photo",
+
+          "success": {
+            "next_phase": "judge_reaction_1",
+            "penalty": 0
+          },
+
+          "failure": {
+            "penalty": 1,
+            "judge_response": "generic_penalty"
+          }
+        }
+      ]
+    },
+
+    {
+      "id": "verdict",
+      "type": "VERDICT",
+      "conditions": {
+        "required_contradictions": [
+          "stmt_3"
+        ]
+      }
+    }
+  ]
+}

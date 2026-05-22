@@ -1,0 +1,33 @@
+{
+  "$schema": "../../schemas/truth.schema.json",
+  "case_id": "case_001",
+  "_case_ref": "./case_001.json",
+
+  "timeline": [
+    {
+      "time": "21:05",
+      "event": "Professor entered office"
+    },
+    {
+      "time": "21:17",
+      "event": "Power outage occurred"
+    },
+    {
+      "time": "21:20",
+      "event": "Victim was killed"
+    }
+  ],
+
+  "facts": [
+    {
+      "id": "fact_001",
+      "truth": "The witness never entered the office."
+    },
+    {
+      "id": "fact_002",
+      "truth": "The security photo timestamp is manipulated."
+    }
+  ],
+
+  "culprit": "assistant_miguel"
+}
