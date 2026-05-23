@@ -1,0 +1,18 @@
+[
+  {
+    "timestamp": 1779538395.135278,
+    "case_id": "case_001",
+    "phase_id": "cross_exam_1",
+    "latent_frustration": 0.25249999999999995,
+    "bandit_action_selected": "BUFF_OPPONENT",
+    "ablation_baseline_run": false
+  },
+  {
+    "timestamp": 1779538395.1362798,
+    "case_id": "case_001",
+    "phase_id": "cross_exam_1",
+    "latent_frustration": 0.47674999999999995,
+    "bandit_action_selected": "BUFF_OPPONENT",
+    "ablation_baseline_run": false
+  }
+]
