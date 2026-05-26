@@ -36,4 +36,7 @@ TASK:
 Generate 5 distinct objection candidates as JSON array.
 Each candidate must include: tone, target_statement_id, evidence_id, argument.
 Avoid unsupported claims.
+
+NOTE:
+Avoid using internal IDs or variable names (for example: stmt_3, security_photo) in the human-facing text. Use natural, in-universe phrasing (e.g. "the witness' statement" or "the hallway security photo").
 """.strip()
