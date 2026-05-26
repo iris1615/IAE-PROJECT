@@ -1,8 +1,12 @@
 # Python bytecode / caches
 __pycache__/
+**/__pycache__/
 *.py[cod]
+**/*.py[cod]
 *.pyo
+**/*.pyo
 *.pyd
+**/*.pyd
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/

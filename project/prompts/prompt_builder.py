@@ -33,9 +33,21 @@ RETRIEVED EVIDENCE:
 {evidence_block if evidence_block else '- none'}
 
 TASK:
-Generate 5 distinct objection candidates as JSON array.
-Each candidate must include: tone, target_statement_id, evidence_id, argument.
-Avoid unsupported claims.
+Generate 5 distinct objection candidates as a JSON array.
+Each candidate must include these fields: `tone`, `target_statement_id`, `evidence_id`, `dialogue`.
+`dialogue` should be a single natural-sounding line the prosecutor would say (human-facing); avoid using internal IDs or variable names in that line.
+Make each candidate use a different rhetorical strategy (timeline, credibility, forensic, logic, court-record).
+IMPORTANT: Surround the JSON output with these exact delimiters so the caller can extract it reliably:
+
+<<<JSON_START>>>
+<JSON array goes here>
+<<<JSON_END>>>
+
+Return ONLY the delimited JSON block (no surrounding commentary).
+
+ADDITIONAL FORMAT REQUIREMENTS:
+- Produce compact JSON (no pretty-printing or extra line breaks inside JSON strings).
+- Escape any internal newlines inside string values as `\\n` (backslash + n), not as literal line breaks.
 
 NOTE:
 Avoid using internal IDs or variable names (for example: stmt_3, security_photo) in the human-facing text. Use natural, in-universe phrasing (e.g. "the witness' statement" or "the hallway security photo").

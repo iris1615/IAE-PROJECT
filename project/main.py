@@ -93,7 +93,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--retrieval-k", type=int, default=3)
     parser.add_argument("--use-chroma", action="store_true")
     parser.add_argument("--use-ollama", action="store_true", help="Use local Ollama model for candidate generation")
-    parser.add_argument("--ollama-model", default="llama2:8b", help="Ollama model name to use (e.g. llama2:8b, gemma4)")
+    parser.add_argument("--ollama-model", default="gemma4", help="Ollama model name to use (e.g. gemma4, llama2:8b)")
     return parser.parse_args()
 
 
