@@ -27,46 +27,117 @@ def ollama_generate_json(prompt: str, model: str = "llama3:8b", temperature: flo
                 return None
             candidate = text[start_idx:end_idx + 1]
 
-        def _escape_newlines(s: str) -> str:
+        def _normalize_json_text(s: str) -> str:
             out_chars = []
             in_string = False
             escaped = False
-            for ch in s:
-                if ch == '"' and not escaped:
-                    in_string = not in_string
-                    out_chars.append(ch)
-                    continue
-                if ch == '\\' and not escaped:
-                    escaped = True
-                    out_chars.append(ch)
-                    continue
-                if in_string and not escaped and ch in ('\n', '\r', '\u2028', '\u2029'):
+            length = len(s)
+            for index, ch in enumerate(s):
+                if in_string:
+                    if escaped:
+                        out_chars.append(ch)
+                        escaped = False
+                        continue
+                    if ch == '\\':
+                        out_chars.append(ch)
+                        escaped = True
+                        continue
+                    if ch == '"':
+                        lookahead = index + 1
+                        while lookahead < length and s[lookahead] in (' ', '\t', '\r', '\n'):
+                            lookahead += 1
+                        if lookahead >= length or s[lookahead] in (',', '}', ']'):
+                            out_chars.append(ch)
+                            in_string = False
+                        else:
+                            out_chars.append('\\"')
+                        continue
                     if ch == '\n':
                         out_chars.append('\\n')
-                    elif ch == '\r':
+                        continue
+                    if ch == '\r':
                         out_chars.append('\\r')
-                    elif ch == '\u2028':
+                        continue
+                    if ch == '\t':
+                        out_chars.append('\\t')
+                        continue
+                    if ch == '\u2028':
                         out_chars.append('\\u2028')
-                    else:
+                        continue
+                    if ch == '\u2029':
                         out_chars.append('\\u2029')
+                        continue
+                    out_chars.append(ch)
+                    continue
+
+                if ch == '"':
+                    in_string = True
+                    out_chars.append(ch)
                     continue
                 out_chars.append(ch)
-                escaped = False
             return ''.join(out_chars)
 
-        sanitized = _escape_newlines(candidate)
-        try:
-            return json.loads(sanitized, strict=False)
-        except json.JSONDecodeError:
-            def _escape_newlines_regex(s: str) -> str:
-                def _repl(m: re.Match) -> str:
-                    inner = m.group(1)
-                    inner = inner.replace('\\', '\\\\').replace('\n', '\\n').replace('\r', '\\r')
-                    inner = inner.replace('\u2028', '\\u2028').replace('\u2029', '\\u2029')
-                    return '"' + inner + '"'
-                return re.sub(r'"(.*?)"', _repl, s, flags=re.DOTALL)
+        def _parse_fragment(fragment: str) -> Optional[Any]:
+            try:
+                return json.loads(fragment, strict=False)
+            except json.JSONDecodeError:
+                sanitized = _normalize_json_text(fragment)
+                try:
+                    return json.loads(sanitized, strict=False)
+                except json.JSONDecodeError:
+                    return None
 
-            return json.loads(_escape_newlines_regex(sanitized), strict=False)
+        parsed = _parse_fragment(candidate)
+        if parsed is not None:
+            return parsed
+
+        def _balanced_object(fragment: str) -> Optional[str]:
+            depth = 0
+            in_string = False
+            escaped = False
+            for index, ch in enumerate(fragment):
+                if in_string:
+                    if escaped:
+                        escaped = False
+                        continue
+                    if ch == '\\':
+                        escaped = True
+                        continue
+                    if ch == '"':
+                        in_string = False
+                    continue
+
+                if ch == '"':
+                    in_string = True
+                    continue
+                if ch == '{':
+                    depth += 1
+                    continue
+                if ch == '}':
+                    depth -= 1
+                    if depth == 0:
+                        return fragment[: index + 1]
+            return None
+
+        objects = []
+        search_start = 0
+        while True:
+            object_start = candidate.find('{"tone"', search_start)
+            if object_start == -1:
+                break
+            fragment = _balanced_object(candidate[object_start:])
+            if fragment is not None:
+                obj = _parse_fragment(fragment)
+                if isinstance(obj, dict):
+                    objects.append(obj)
+                    search_start = object_start + len(fragment)
+                    continue
+            search_start = object_start + 1
+
+        if objects:
+            return objects
+
+        return None
 
     # 1) Python SDK
     try:
