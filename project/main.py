@@ -23,6 +23,8 @@ def run_pipeline(
     k: int,
     retrieval_k: int,
     use_chroma: bool,
+    use_ollama: bool = False,
+    ollama_model: str = "llama2:8b",
 ) -> None:
     start = time.perf_counter()
 
@@ -47,7 +49,14 @@ def run_pipeline(
     )
 
     prompt = build_prompt(context=context, adaptation=adaptation, retrieved=retrieved)
-    candidates = generate_candidates(bundle=bundle, adaptation=adaptation, k=k)
+    candidates = generate_candidates(
+        bundle=bundle,
+        adaptation=adaptation,
+        k=k,
+        prompt=prompt,
+        use_ollama=use_ollama,
+        ollama_model=ollama_model,
+    )
 
     verified = [(cand, verify_candidate(bundle, cand)) for cand in candidates]
     valid_candidates = [cand for cand, verdict in verified if verdict.valid]
@@ -83,6 +92,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--k", type=int, default=5)
     parser.add_argument("--retrieval-k", type=int, default=3)
     parser.add_argument("--use-chroma", action="store_true")
+    parser.add_argument("--use-ollama", action="store_true", help="Use local Ollama model for candidate generation")
+    parser.add_argument("--ollama-model", default="llama2:8b", help="Ollama model name to use (e.g. llama2:8b, gemma4)")
     return parser.parse_args()
 
 
@@ -97,6 +108,8 @@ def main() -> None:
         k=args.k,
         retrieval_k=args.retrieval_k,
         use_chroma=args.use_chroma,
+        use_ollama=args.use_ollama,
+        ollama_model=args.ollama_model,
     )
 
 
