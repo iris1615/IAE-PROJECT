@@ -18,7 +18,7 @@ def generate_candidates(
     k: int = 5,
     prompt: Optional[str] = None,
     use_ollama: bool = False,
-    ollama_model: str = "llama2:8b",
+    ollama_model: str = "gemma4",
 ) -> List[CandidateArgument]:
     testimony = bundle["testimonies"]
     evidence = bundle["evidence"]
@@ -52,16 +52,22 @@ def generate_candidates(
 
     # If user requested Ollama and client available, attempt a single LLM call to produce JSON candidates
     if use_ollama and prompt and ollama_generate_json is not None:
+        print(f"[debug] use_ollama=True -> calling Ollama model='{ollama_model}'")
         llm_out = ollama_generate_json(prompt=prompt, model=ollama_model, temperature=adaptation.temperature)
+        if llm_out is None:
+            print("[debug] Ollama returned no JSON (llm_out is None). Falling back to local templates.")
+        else:
+            print(f"[debug] Ollama returned JSON of type {type(llm_out)}; using LLM candidates.")
         if isinstance(llm_out, list):
+            canonical_evidence_id = evidence.get("id", "unknown_evidence")
             for idx, item in enumerate(llm_out[:k]):
                 candidates.append(
                     CandidateArgument(
                         candidate_id=f"cand_ollama_{idx+1}",
                         tone=item.get("tone", tones[idx % len(tones)]),
                         target_statement_id=item.get("target_statement_id", target_stmt.get("id", "stmt_1")),
-                        evidence_id=item.get("evidence_id", evidence.get("id", "unknown_evidence")),
-                        argument=item.get("argument", ""),
+                        evidence_id=canonical_evidence_id,
+                        argument=item.get("dialogue", item.get("argument", "")),
                     )
                 )
             return candidates
