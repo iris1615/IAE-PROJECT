@@ -60,7 +60,7 @@ def run_pipeline(
         ollama_model=ollama_model,
     )
 
-    verified = [(cand, verify_candidate(bundle, cand)) for cand in candidates]
+    verified = [(cand, verify_candidate(bundle, cand, retrieved=retrieved)) for cand in candidates]
     valid_candidates = [cand for cand, verdict in verified if verdict.valid]
 
     elapsed_ms = int((time.perf_counter() - start) * 1000)
