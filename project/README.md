@@ -24,10 +24,13 @@ pip install -r project/requirements.txt
 
 ```bash
 python -m project.main --case-id case_001 --query "Challenge witness statement stmt_3"
+
+#usa chroma DB e ollama model
+python -m project.main --case-id case_001 --query "Challenge witness statement stmt_3" --use-chroma --use-ollama --ollama-model llama3:8b
 ```
 
 ## Notes
 
 - The pipeline works without external APIs by using a deterministic local candidate generator.
 - If you later add OpenAI/other LLM calls, keep the same interfaces and only swap `generation/candidate_generator.py` internals.
-- Keep retrieval `k` small (2-4) to avoid prompt bloat.
+- Keep retrieval `k` small (2-5) to avoid prompt bloat.
