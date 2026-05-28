@@ -122,8 +122,13 @@ def ollama_generate_json(prompt: str, model: str = "llama3:8b", temperature: flo
         objects = []
         search_start = 0
         while True:
-            object_start = candidate.find('{"tone"', search_start)
-            if object_start == -1:
+            # look for either a `strategy` object (preferred) or legacy `tone` key
+            object_start = None
+            for key in ("{\"strategy\"", "{\"tone\""):
+                idx = candidate.find(key, search_start)
+                if idx != -1 and (object_start is None or idx < object_start):
+                    object_start = idx
+            if object_start is None:
                 break
             fragment = _balanced_object(candidate[object_start:])
             if fragment is not None:
