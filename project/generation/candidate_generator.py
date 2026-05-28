@@ -64,10 +64,10 @@ def generate_candidates(
                 candidates.append(
                     CandidateArgument(
                         candidate_id=f"cand_ollama_{idx+1}",
-                        strategy=item.get("strategy", strategies[idx % len(strategies)]),
+                        strategy=item.get("strategy", item.get("tone", strategies[idx % len(strategies)])),
                         target_statement_id=item.get("target_statement_id", target_stmt.get("id", "stmt_1")),
                         evidence_id=canonical_evidence_id,
-                        argument=item.get("dialogue", item.get("argument", "")),
+                        argument=item.get("argument", item.get("dialogue", "")),
                     )
                 )
             return candidates

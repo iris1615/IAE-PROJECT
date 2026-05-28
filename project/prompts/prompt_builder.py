@@ -34,8 +34,8 @@ RETRIEVED EVIDENCE:
 
 TASK:
 Generate 5 distinct objection candidates as a JSON array.
-Each candidate must include these fields: `tone`, `target_statement_id`, `evidence_id`, `dialogue`.
-`dialogue` should be a single natural-sounding line the prosecutor would say (human-facing); avoid using internal IDs or variable names in that line.
+Each candidate must include these fields: `strategy`, `target_statement_id`, `evidence_id`, `argument`.
+`argument` should be a single natural-sounding line the prosecutor would say (human-facing); avoid using internal IDs or variable names in that line.
 Make each candidate use a different rhetorical strategy (timeline, credibility, forensic, logic, court-record).
 IMPORTANT: Surround the JSON output with these exact delimiters so the caller can extract it reliably:
 
