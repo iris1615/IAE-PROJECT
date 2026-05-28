@@ -3,16 +3,17 @@ from __future__ import annotations
 import argparse
 import time
 from pathlib import Path
-
 from project.adaptation.config import AdaptationConfig
 from project.common.types import TrialContext
 from project.generation.candidate_generator import generate_candidates
 from project.logs.logger import append_log
 from project.prompts.prompt_builder import build_prompt
+from project.retrieval.chroma_indexer import build_chroma_retriever, ensure_chroma_index
 from project.retrieval.loader import build_documents, load_case_bundle
 from project.retrieval.store import LocalRetriever, maybe_build_chroma_retriever
 from project.ui.cli_demo import print_candidates
 from project.verifier.symbolic_verifier import verify_candidate
+from project.retrieval.chroma_indexer import ensure_chroma_index, build_chroma_retriever
 
 
 def run_pipeline(
@@ -30,11 +31,15 @@ def run_pipeline(
 
     bundle = load_case_bundle(repo_root, case_id)
     docs = build_documents(bundle)
+    ensure_chroma_index(repo_root, case_id, docs)
+    retriever = build_chroma_retriever(case_id)
 
     retriever = None
     if use_chroma:
-        retriever = maybe_build_chroma_retriever(docs)
+        ensure_chroma_index(repo_root, case_id, docs)
+        retriever = build_chroma_retriever(case_id)
     if retriever is None:
+        #fallback to local retriever if chroma is not used or fails
         retriever = LocalRetriever(docs)
 
     retrieved = retriever.similarity_search(query, k=retrieval_k)
