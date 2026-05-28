@@ -13,7 +13,7 @@ def print_candidates(results: List[Tuple[CandidateArgument, VerifierResult]]) ->
     print("\n=== Verified Candidates ===")
     for candidate, verdict in results:
         status = "OK" if verdict.valid else "REJECT"
-        print(f"- {candidate.candidate_id} [{status}] tone={candidate.tone}")
+        print(f"- {candidate.candidate_id} [{status}] strategy={candidate.strategy}")
         # print only the human-facing argument text (strip internal tags)
         print(f"  {_strip_leading_tag(candidate.argument)}")
         if not verdict.valid:

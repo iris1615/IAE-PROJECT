@@ -2,13 +2,12 @@ from pathlib import Path
 import json
 import hashlib
 from typing import List
-
 import chromadb
-from sentence_transformers import SentenceTransformer
 from project.common.types import EvidenceDocument
+from project.retrieval.embeddings import EMBED_MODEL,embed_texts
 
 CHROMA_DIR = Path("project/data/chroma")
-EMBED_MODEL = "all-MiniLM-L6-v2"
+
 
 def fingerprint_case(case_dir: Path) -> str:
     h = hashlib.sha256()
@@ -46,8 +45,8 @@ def _normalize_metadata(raw_meta, fallback_kind: str):
             else:
                 # list/dict/etc -> string JSON
                 out[key] = json.dumps(v, ensure_ascii=False)
-    if not out:
-        out["kind"] = out.get("kind", fallback_kind)
+    if "kind" not in out:
+        out["kind"] = fallback_kind
     return out
 
 def ensure_chroma_index(repo_root: Path, case_id: str, documents: List[EvidenceDocument], force: bool = False):
@@ -66,11 +65,10 @@ def ensure_chroma_index(repo_root: Path, case_id: str, documents: List[EvidenceD
         except Exception:
             pass
         collection = client.create_collection(name=collection_name)
-        model = SentenceTransformer(EMBED_MODEL)
         ids = [d.id for d in documents]
         docs = [d.content for d in documents]
         metadatas = [_normalize_metadata(d.metadata, d.kind) for d in documents]
-        embeddings = model.encode(docs, convert_to_numpy=True).tolist()
+        embeddings = embed_texts(docs, EMBED_MODEL)
         collection.upsert(ids=ids, documents=docs, metadatas=metadatas, embeddings=embeddings)
         write_manifest(collection_name, {"source_hash": current_hash, "embeddings_model": EMBED_MODEL})
         return True

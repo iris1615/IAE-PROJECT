@@ -4,6 +4,7 @@ from typing import Dict
 
 @dataclass
 class AdaptationConfig:
+    #global tone for the argument, can be "neutral", "aggressive", "passive", etc.
     tone: str = "neutral"
     temperature: float = 0.4
     judge_strictness: float = 0.5

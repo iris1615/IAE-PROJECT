@@ -47,7 +47,7 @@ def generate_candidates(
         _judge_focused_argument,
     ]
 
-    tones = _tone_variants(adaptation.tone)
+    strategies = ["timeline", "credibility", "forensic", "logic", "court-record"]
     candidates: List[CandidateArgument] = []
 
     # If user requested Ollama and client available, attempt a single LLM call to produce JSON candidates
@@ -64,7 +64,7 @@ def generate_candidates(
                 candidates.append(
                     CandidateArgument(
                         candidate_id=f"cand_ollama_{idx+1}",
-                        tone=item.get("tone", tones[idx % len(tones)]),
+                        strategy=item.get("strategy", strategies[idx % len(strategies)]),
                         target_statement_id=item.get("target_statement_id", target_stmt.get("id", "stmt_1")),
                         evidence_id=canonical_evidence_id,
                         argument=item.get("dialogue", item.get("argument", "")),
@@ -75,7 +75,7 @@ def generate_candidates(
 
     for idx in range(k):
         tpl = templates[idx % len(templates)]
-        tone = tones[idx % len(tones)]
+        strategy = strategies[idx % len(strategies)]
         # Call template functions positionally to avoid signature mismatch
         arg_text = tpl(
             target_stmt.get("text", ""),
@@ -83,13 +83,13 @@ def generate_candidates(
             evidence.get("description", ""),
             timeline_text,
             fact_texts,
-            tone,
+            strategy,
         )
 
         candidates.append(
             CandidateArgument(
                 candidate_id=f"cand_{idx + 1}",
-                tone=tone,
+                strategy=strategy,
                 target_statement_id=target_stmt.get("id", "stmt_1"),
                 evidence_id=evidence.get("id", "unknown_evidence"),
                 argument=arg_text,
@@ -134,14 +134,3 @@ def _judge_focused_argument(statement_text, evidence_name, evidence_description,
         f"[court-record/{tone}] For the court: statement ('{statement_text}') is challenged by {evidence_name}. "
         f"This is a material contradiction relevant to credibility and admissibility."
     )
-
-
-def _tone_variants(base_tone: str) -> List[str]:
-    base = base_tone.lower().strip()
-    if base == "aggressive":
-        return ["aggressive", "assertive", "sharp"]
-    if base == "friendly":
-        return ["friendly", "supportive", "calm"]
-    if base == "informative":
-        return ["informative", "analytical", "neutral"]
-    return ["neutral", "assertive", "informative"]
