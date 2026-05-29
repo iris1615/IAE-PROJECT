@@ -23,6 +23,7 @@ def generate_candidates(
     testimony = bundle["testimonies"]
     evidence = bundle["evidence"]
     truth = bundle.get("truth", {})
+    valid_statement_ids = {stmt.get("id") for stmt in testimony.get("statements", []) if stmt.get("id")}
 
     # pick the target statement (the one contradicted by this evidence when possible)
     target_stmt = None
@@ -61,13 +62,16 @@ def generate_candidates(
         if isinstance(llm_out, list):
             canonical_evidence_id = evidence.get("id", "unknown_evidence")
             for idx, item in enumerate(llm_out[:k]):
+                target_statement_id = item.get("target_statement_id")
+                if target_statement_id not in valid_statement_ids:
+                    target_statement_id = target_stmt.get("id", "stmt_1")
                 candidates.append(
                     CandidateArgument(
                         candidate_id=f"cand_ollama_{idx+1}",
-                        strategy=item.get("strategy", item.get("tone", strategies[idx % len(strategies)])),
-                        target_statement_id=item.get("target_statement_id", target_stmt.get("id", "stmt_1")),
+                        strategy=item.get("strategy") or item.get("tone") or strategies[idx % len(strategies)],
+                        target_statement_id=target_statement_id,
                         evidence_id=canonical_evidence_id,
-                        argument=item.get("argument", item.get("dialogue", "")),
+                        argument=item.get("argument") or item.get("dialogue") or "",
                     )
                 )
             return candidates
