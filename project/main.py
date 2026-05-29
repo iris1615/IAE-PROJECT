@@ -7,10 +7,11 @@ from project.adaptation.config import AdaptationConfig
 from project.common.types import TrialContext
 from project.generation.candidate_generator import generate_candidates
 from project.logs.logger import append_log
+from project.reactions.engine import build_npc_reactions
 from project.prompts.prompt_builder import build_prompt
 from project.retrieval.loader import build_documents, load_case_bundle
 from project.retrieval.store import LocalRetriever
-from project.ui.cli_demo import print_candidates
+from project.ui.cli_demo import choose_candidate, print_player_choices, print_reactions
 from project.verifier.symbolic_verifier import verify_candidate
 from project.retrieval.chroma_indexer import ensure_chroma_index, build_chroma_retriever
 
@@ -62,6 +63,19 @@ def run_pipeline(
 
     verified = [(cand, verify_candidate(bundle, cand, retrieved=retrieved)) for cand in candidates]
     valid_candidates = [cand for cand, verdict in verified if verdict.valid]
+    player_choices = print_player_choices(verified)
+    selected_candidate = choose_candidate(player_choices)
+    reactions = []
+    if selected_candidate is not None:
+        selected_verdict = next((verdict for cand, verdict in verified if cand.candidate_id == selected_candidate.candidate_id), None)
+        if selected_verdict is not None:
+            print(f"\nSelected candidate: {selected_candidate.candidate_id} [{selected_candidate.strategy}]")
+            reactions = build_npc_reactions(
+                bundle=bundle,
+                candidate=selected_candidate,
+                verdict=selected_verdict,
+                adaptation=adaptation,
+            )
 
     elapsed_ms = int((time.perf_counter() - start) * 1000)
 
@@ -73,16 +87,17 @@ def run_pipeline(
             "query": query,
             "retrieved_docs": [chunk.id for chunk in retrieved],
             "tone_used": tone,
-            "selected_candidate": valid_candidates[0].candidate_id if valid_candidates else None,
+            "selected_candidate": selected_candidate.candidate_id if selected_candidate else None,
             "valid_candidates": len(valid_candidates),
+            "npc_reactions": [reaction.text for reaction in reactions],
             "k": k,
             "response_time_ms": elapsed_ms,
         },
     )
 
     print("=== Prompt Preview ===")
-    print(prompt)
-    print_candidates(verified)
+    #print(prompt)
+    print_reactions(reactions)
     print(f"\nLog written to: {log_file}")
 
 
