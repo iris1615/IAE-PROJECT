@@ -17,6 +17,15 @@ def load_case_bundle(repo_root: Path, case_id: str) -> Dict:
     testimonies_data = _load_json(case_dir / "testimonies.json")
     truth_data = _load_json(case_dir / f"truth_{case_id}.json")
 
+    witnesses_data: Dict[str, Dict] = {}
+    witnesses_dir = case_dir / "witnesses"
+    if witnesses_dir.exists():
+        for witness_file in sorted(witnesses_dir.glob("*.json")):
+            witness_data = _load_json(witness_file)
+            witness_id = witness_data.get("id")
+            if witness_id:
+                witnesses_data[witness_id] = witness_data
+
     characters_dir = repo_root / "characters"
     judge_data = _load_json(characters_dir / "judge.json")
     prosecutor_data = _load_json(characters_dir / "prosecutor.json")
@@ -26,6 +35,7 @@ def load_case_bundle(repo_root: Path, case_id: str) -> Dict:
         "evidence": evidence_data,
         "testimonies": testimonies_data,
         "truth": truth_data,
+        "witnesses": witnesses_data,
         "judge": judge_data,
         "prosecutor": prosecutor_data,
     }

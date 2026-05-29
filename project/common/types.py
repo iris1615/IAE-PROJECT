@@ -40,3 +40,13 @@ class CandidateArgument:
 class VerifierResult:
     valid: bool
     reason: str
+
+
+@dataclass
+class NPCReaction:
+    npc_id: str
+    npc_name: str
+    role: str
+    trigger: str
+    mood: str
+    text: str
