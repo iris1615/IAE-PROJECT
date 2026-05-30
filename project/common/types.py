@@ -30,7 +30,7 @@ class TrialContext:
 @dataclass
 class CandidateArgument:
     candidate_id: str
-    tone: str
+    strategy: str
     target_statement_id: str
     evidence_id: str
     argument: str
@@ -40,3 +40,13 @@ class CandidateArgument:
 class VerifierResult:
     valid: bool
     reason: str
+
+
+@dataclass
+class NPCReaction:
+    npc_id: str
+    npc_name: str
+    role: str
+    trigger: str
+    mood: str
+    text: str

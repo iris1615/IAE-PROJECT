@@ -50,7 +50,7 @@
           "correct_evidence": "security_photo",
 
           "success": {
-            "next_phase": "judge_reaction_1",
+            "next_phase": "argument_1",
             "penalty": 0
           },
 
@@ -60,6 +60,25 @@
           }
         }
       ]
+    },
+
+    {
+      "id": "argument_1",
+      "type": "ARGUMENTATION",
+      "note": "Defense attorney crafts/presents an argument here based on the chosen contradiction; LLM polishes the spoken line."
+    },
+
+    {
+      "id": "judge_reaction_1",
+      "type": "JUDGE_REACTION",
+      "judge_id": "judge_judy",
+      "note": "Auto-added phase to handle judge reactions after cross-examination contradictions"
+    },
+
+    {
+      "id": "final_defense",
+      "type": "FINAL_DEFENSE",
+      "note": "Defense delivers closing argument summarizing gathered contradictions and evidence."
     },
 
     {
