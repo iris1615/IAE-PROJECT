@@ -9,10 +9,21 @@ from project.retrieval.embeddings import EMBED_MODEL,embed_texts
 CHROMA_DIR = Path("project/data/chroma")
 
 
-def fingerprint_case(case_dir: Path) -> str:
+def fingerprint_case(case_dir: Path, repo_root: Path | None = None) -> str:
+    """Compute a fingerprint for a case directory. If repo_root is provided,
+    also include top-level schema files (in repo_root/schemas) so schema changes
+    trigger reindexing.
+    """
     h = hashlib.sha256()
     for p in sorted(case_dir.glob("*.json")):
         h.update(p.read_bytes())
+
+    if repo_root is not None:
+        schema_dir = repo_root / "schemas"
+        if schema_dir.exists():
+            for p in sorted(schema_dir.glob("*.json")):
+                h.update(p.read_bytes())
+
     return h.hexdigest()
 
 def manifest_path(collection_name: str) -> Path:
@@ -53,7 +64,7 @@ def ensure_chroma_index(repo_root: Path, case_id: str, documents: List[EvidenceD
     CHROMA_DIR.mkdir(parents=True, exist_ok=True)
     case_dir = repo_root / "cases" / case_id
     collection_name = f"court_docs_{case_id}"
-    current_hash = fingerprint_case(case_dir)
+    current_hash = fingerprint_case(case_dir, repo_root=repo_root)
     manifest = read_manifest(collection_name) or {}
 
     if force or manifest.get("source_hash") != current_hash or manifest.get("embeddings_model") != EMBED_MODEL:

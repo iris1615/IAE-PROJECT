@@ -18,7 +18,7 @@ def generate_candidates(
     k: int = 5,
     prompt: Optional[str] = None,
     use_ollama: bool = False,
-    ollama_model: str = "gemma4",
+    ollama_model: str = "llama3:8b",
 ) -> List[CandidateArgument]:
     testimony = bundle["testimonies"]
     evidence = bundle["evidence"]
@@ -52,30 +52,51 @@ def generate_candidates(
     candidates: List[CandidateArgument] = []
 
     # If user requested Ollama and client available, attempt a single LLM call to produce JSON candidates
-    if use_ollama and prompt and ollama_generate_json is not None:
-        print(f"[debug] use_ollama=True -> calling Ollama model='{ollama_model}'")
-        llm_out = ollama_generate_json(prompt=prompt, model=ollama_model, temperature=adaptation.temperature)
-        if llm_out is None:
-            print("[debug] Ollama returned no JSON (llm_out is None). Falling back to local templates.")
+    if use_ollama and prompt:
+        # allow updating the module-level reference during lazy import
+        global ollama_generate_json
+        # If the top-level import failed previously, try importing lazily here and report the error.
+        if ollama_generate_json is None:
+            try:
+                import importlib
+                mod = importlib.import_module("project.generation.ollama_client")
+                ollama_generate_json = getattr(mod, "ollama_generate_json", None)
+                if ollama_generate_json is None:
+                    print("[debug] Ollama client module imported but 'ollama_generate_json' not found. Falling back to templates.")
+            except Exception as e:
+                import traceback
+                print("[debug] lazy import of Ollama client failed:")
+                traceback.print_exc()
+                print("[debug] Falling back to template candidate generation.")
+        if ollama_generate_json is None:
+            print("[debug] use_ollama=True but Ollama client is not available (ollama_generate_json is None). Falling back to templates.")
         else:
-            print(f"[debug] Ollama returned JSON of type {type(llm_out)}; using LLM candidates.")
-        if isinstance(llm_out, list):
-            canonical_evidence_id = evidence.get("id", "unknown_evidence")
-            for idx, item in enumerate(llm_out[:k]):
-                target_statement_id = item.get("target_statement_id")
-                if target_statement_id not in valid_statement_ids:
-                    target_statement_id = target_stmt.get("id", "stmt_1")
-                candidates.append(
-                    CandidateArgument(
-                        candidate_id=f"cand_ollama_{idx+1}",
-                        strategy=item.get("strategy") or item.get("tone") or strategies[idx % len(strategies)],
-                        target_statement_id=target_statement_id,
-                        evidence_id=canonical_evidence_id,
-                        argument=item.get("argument") or item.get("dialogue") or "",
-                    )
-                )
-            return candidates
-        # on failure, fall back to local templates
+            print(f"[debug] use_ollama=True -> calling Ollama model='{ollama_model}' (prompt length={len(prompt)})")
+            llm_out = ollama_generate_json(prompt=prompt, model=ollama_model, temperature=adaptation.temperature)
+            if llm_out is None:
+                print("[debug] Ollama returned no JSON (llm_out is None). Falling back to local templates.")
+            else:
+                print(f"[debug] Ollama returned JSON of type {type(llm_out)}; using LLM candidates.")
+                # support single-object responses as well as lists
+                if isinstance(llm_out, dict):
+                    llm_out = [llm_out]
+                if isinstance(llm_out, list):
+                    canonical_evidence_id = evidence.get("id", "unknown_evidence")
+                    for idx, item in enumerate(llm_out[:k]):
+                        target_statement_id = item.get("target_statement_id")
+                        if target_statement_id not in valid_statement_ids:
+                            target_statement_id = target_stmt.get("id", "stmt_1")
+                        candidates.append(
+                            CandidateArgument(
+                                candidate_id=f"cand_ollama_{idx+1}",
+                                strategy=item.get("strategy") or item.get("tone") or strategies[idx % len(strategies)],
+                                target_statement_id=target_statement_id,
+                                evidence_id=canonical_evidence_id,
+                                argument=item.get("argument") or item.get("dialogue") or "",
+                            )
+                        )
+                    return candidates
+            # on failure, fall back to local templates
 
     for idx in range(k):
         tpl = templates[idx % len(templates)]
