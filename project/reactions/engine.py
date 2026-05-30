@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Dict, Iterable, List, Optional
+from typing import Dict, Iterable, List, Optional, Any
 
 from project.adaptation.config import AdaptationConfig
 from project.common.types import CandidateArgument, NPCReaction, VerifierResult
@@ -128,7 +128,76 @@ def build_npc_reactions(
     candidate: CandidateArgument,
     verdict: VerifierResult,
     adaptation: AdaptationConfig,
+    history: Optional[List[Dict]] = None,
+    ollama_model: str = "llama3:8b",
 ) -> List[NPCReaction]:
+    """Build NPC reactions. Prefer generating contextual reactions via Ollama when available,
+    otherwise fall back to template-driven responses.
+
+    `history` is a list of prior player choice dicts (trial_state.player_choices).
+    """
+    # Try LLM-driven reactions first (best-effort)
+    try:
+        import importlib
+
+        mod = importlib.import_module("project.generation.ollama_client")
+        ollama_generate_json = getattr(mod, "ollama_generate_json", None)
+    except Exception:
+        ollama_generate_json = None
+
+    if ollama_generate_json is not None:
+        try:
+            # Build a compact context payload
+            ctx_lines: List[str] = []
+            ctx_lines.append(f"Case: {bundle.get('case', {}).get('id')} - {bundle.get('case', {}).get('title')}")
+            ctx_lines.append(f"Phase: {bundle.get('case', {}).get('phases', [])}")
+            # last candidate summary
+            cand_summary = {
+                "candidate_id": getattr(candidate, "candidate_id", None) or getattr(candidate, "candidate_id", None) or getattr(candidate, "candidate_id", None)
+            }
+            ctx_lines.append(f"Candidate: strategy={getattr(candidate, 'strategy', '')} argument={getattr(candidate, 'argument', '')}")
+            if history:
+                ctx_lines.append("Prior choices:")
+                for h in history:
+                    ctx_lines.append(f"- {h.get('candidate_id')} strategy={h.get('strategy')} argument={h.get('argument') or h.get('presented_argument')}")
+
+            prompt = (
+                "<<<JSON_START>>>" +
+                "[\n" +
+                "  {\"npc\": \"judge\", \"role\": \"judge\", \"instruction\": \"Respond as the judge to the presented argument and prior dialog. Keep it concise.\"},\n" +
+                "  {\"npc\": \"witness\", \"role\": \"witness\", \"instruction\": \"Respond as the witness to being challenged; include behavioral cues if appropriate.\"},\n" +
+                "  {\"npc\": \"prosecutor\", \"role\": \"prosecutor\", \"instruction\": \"Respond as the prosecutor, either rebutting or supporting based on the presented argument.\"}\n" +
+                "]" +
+                "<<<JSON_END>>>"
+            )
+
+            # Provide a helper textual prompt including context and desired JSON schema
+            llm_prompt = (
+                f"You are simulating courtroom NPC reactions.\n\nCONTEXT:\n" + "\n".join(ctx_lines) +
+                "\n\nTASK: For each NPC (judge, witness, prosecutor) produce an object with keys: npc_name, role, trigger, mood, text."
+                " Return a JSON array of objects exactly as the values (no extra commentary)."
+                " Surround JSON with <<<JSON_START>>> and <<<JSON_END>>>."
+            )
+
+            parsed = ollama_generate_json(prompt=llm_prompt, model=ollama_model, temperature=adaptation.temperature)
+            if isinstance(parsed, list) and parsed:
+                reactions: List[NPCReaction] = []
+                for obj in parsed:
+                    if not isinstance(obj, dict):
+                        continue
+                    npc_id = obj.get("npc_name", obj.get("npc", obj.get("role", "npc")))
+                    npc_name = obj.get("npc_name", npc_id)
+                    role = obj.get("role", "npc")
+                    trigger = obj.get("trigger", "response")
+                    mood = obj.get("mood", "neutral")
+                    text = obj.get("text", "")
+                    reactions.append(NPCReaction(npc_id=npc_id, npc_name=npc_name, role=role, trigger=trigger, mood=mood, text=text))
+                if reactions:
+                    return reactions
+        except Exception as e:
+            print(f"[debug] LLM-driven NPC reactions failed: {e}")
+
+    # Fallback to template-based reactions
     reactions: List[NPCReaction] = []
     judge_reaction = _judge_reaction(bundle, candidate, verdict)
     reactions.append(judge_reaction)
@@ -137,15 +206,41 @@ def build_npc_reactions(
     if witness_reaction is not None:
         reactions.append(witness_reaction)
 
-    if adaptation.hint_level > 0.7 and verdict.valid:
+    # Prosecutor should react oppositely to the defense: if defendant's contradiction is valid,
+    # prosecutor will attempt to rebut; if invalid, prosecutor will push the advantage.
+    prosecutor = bundle.get("prosecutor", {})
+    proc_templates = prosecutor.get("reaction_templates", {})
+    if verdict.valid:
+        # construct a counterargument text using templates if available
+        counter_text = None
+        if proc_templates.get("counter_objection"):
+            counter_text = proc_templates.get("counter_objection")[0]
+        else:
+            counter_text = "Objection — the evidence does not support that inference, Your Honor."
         reactions.append(
             NPCReaction(
-                npc_id=bundle.get("prosecutor", {}).get("id", "prosecutor"),
-                npc_name=bundle.get("prosecutor", {}).get("name", "Prosecutor"),
+                npc_id=prosecutor.get("id", "prosecutor"),
+                npc_name=prosecutor.get("name", "Prosecutor"),
                 role="prosecutor",
-                trigger="reinforcement",
-                mood="focused",
-                text="Good. Keep pressing that contradiction.",
+                trigger="counter",
+                mood="combative",
+                text=counter_text,
+            )
+        )
+    else:
+        support_text = None
+        if proc_templates.get("support_objection"):
+            support_text = proc_templates.get("support_objection")[0]
+        else:
+            support_text = "The court should note that the prosecution's evidence remains compelling."
+        reactions.append(
+            NPCReaction(
+                npc_id=prosecutor.get("id", "prosecutor"),
+                npc_name=prosecutor.get("name", "Prosecutor"),
+                role="prosecutor",
+                trigger="support",
+                mood="confident",
+                text=support_text,
             )
         )
 
