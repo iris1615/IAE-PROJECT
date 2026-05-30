@@ -105,11 +105,19 @@ def run_pipeline(
                     print(f"{idx}. {stmt.get('id')}: {stmt.get('text')}")
 
                 # choose statement by number
+                proceed_to_final = False
                 while True:
                     raw = input("Choose a statement to challenge by number (or Enter to skip): ").strip()
                     if raw == "":
-                        chosen_stmt = None
-                        break
+                        # Ask whether to proceed to final defense or continue cross-exam
+                        yn = input("No statement chosen. Proceed to final defense? (y/n): ").strip().lower()
+                        if yn in {"y", "yes"}:
+                            chosen_stmt = None
+                            proceed_to_final = True
+                            break
+                        else:
+                            # re-prompt the statement selection
+                            continue
                     try:
                         n = int(raw)
                     except ValueError:
@@ -121,7 +129,16 @@ def run_pipeline(
                     print(f"Choose a number between 1 and {len(statements)}.")
 
                 if not chosen_stmt:
-                    next_phase_id = trial_state.next_phase_id(current_phase_id)
+                    if proceed_to_final:
+                        # find final_defense phase id
+                        final_phase_id = None
+                        for pid, p in trial_state.phases.items():
+                            if p.get("type") == "FINAL_DEFENSE":
+                                final_phase_id = pid
+                                break
+                        next_phase_id = final_phase_id or trial_state.next_phase_id(current_phase_id)
+                    else:
+                        next_phase_id = trial_state.next_phase_id(current_phase_id)
                 else:
                     # run retrieval and candidate generation focused on the chosen statement
                     target_text = chosen_stmt.get("text")
@@ -187,6 +204,40 @@ def run_pipeline(
         elif phase_type == "ARGUMENTATION":
             # Allow the player to present a polished argument based on their chosen candidate(s).
             last_choice = trial_state.player_choices[-1] if trial_state.player_choices else None
+            # If there is no immediate last choice, generate discussion candidates based on prior history
+            if last_choice is None and trial_state.player_choices:
+                prior_context_lines = []
+                for i, c in enumerate(trial_state.player_choices, start=1):
+                    line = f"choice_{i}: strategy={c.get('strategy')} target={c.get('target_statement_id')} argument={c.get('argument') or c.get('presented_argument')} verdict={c.get('verdict_valid')}"
+                    prior_context_lines.append(line)
+                player_context = "\n".join(prior_context_lines)
+                action_text = bundle.get("case", {}).get("summary", "")
+                retrieved = retriever.similarity_search(player_context or action_text, k=retrieval_k)
+                context = TrialContext(
+                    case_id=bundle["case"]["id"],
+                    case_title=bundle["case"]["title"],
+                    summary=bundle["case"]["summary"],
+                    current_phase=current_phase_id,
+                    player_action=f"Discussion request. Prior choices:\n{player_context}\nCurrent focus: {action_text}",
+                )
+                prompt = build_prompt(context=context, adaptation=adaptation, retrieved=retrieved)
+                candidates = generate_candidates(
+                    bundle=bundle,
+                    adaptation=adaptation,
+                    k=k,
+                    prompt=prompt,
+                    use_ollama=use_ollama,
+                    ollama_model=ollama_model,
+                )
+
+                verified = [(cand, verify_candidate(bundle, cand, retrieved=retrieved)) for cand in candidates]
+                player_choices = print_player_choices(verified)
+                selected_candidate = choose_candidate(player_choices)
+                if selected_candidate is not None:
+                    selected_verdict = next((verdict for cand, verdict in verified if cand.candidate_id == selected_candidate.candidate_id), None)
+                    if selected_verdict is not None:
+                        trial_state.record_choice(selected_candidate, selected_verdict)
+                        last_choice = trial_state.player_choices[-1]
             selected_text = None
             if last_choice:
                 # prefer the candidate's argument if available
@@ -264,8 +315,38 @@ def run_pipeline(
                         print(f"[PROSECUTOR] {r.npc_name}: {r.text}")
 
             # ask player whether to make a follow-up argument or proceed to judge
+            # determine whether there are remaining statements to examine so we can label option 2 accurately
+            cross_phase_id = None
+            for pid, p in trial_state.phases.items():
+                if p.get("type") == "CROSS_EXAMINATION":
+                    cross_phase_id = pid
+                    break
+            cross_phase = trial_state.phases.get(cross_phase_id, {}) if cross_phase_id else {}
+            testimony_id = cross_phase.get("testimony_id")
+            witness_id = cross_phase.get("witness_id")
+            testimonies_obj = bundle.get("testimonies", {})
+            testimony = None
+            if isinstance(testimonies_obj, dict) and testimonies_obj.get("id") == testimony_id:
+                testimony = testimonies_obj
+            elif isinstance(testimonies_obj, dict) and testimony_id and testimony_id in testimonies_obj:
+                testimony = testimonies_obj.get(testimony_id)
+            elif isinstance(testimonies_obj, list):
+                for t in testimonies_obj:
+                    if t.get("id") == testimony_id or (witness_id and t.get("witness_id") == witness_id):
+                        testimony = t
+                        break
+            else:
+                if isinstance(testimonies_obj, dict) and witness_id and testimonies_obj.get("witness_id") == witness_id:
+                    testimony = testimonies_obj
+
+            all_statements = [s.get("id") for s in (testimony or {}).get("statements", [])]
+            seen = {c.get("target_statement_id") for c in trial_state.player_choices if c.get("target_statement_id")}
+            remaining = [s for s in all_statements if s not in seen]
+
+            option2_label = "2) Back to cross-examination" if remaining else "2) Proceed to judge reaction"
+
             while True:
-                print("\nOptions:\n1) Make a follow-up argument\n2) Proceed to judge reaction")
+                print(f"\nOptions:\n1) Make a follow-up argument\n{option2_label}")
                 choice = input("Choose 1 or 2: ").strip()
                 if choice == "1":
                     # follow-up should run the same candidate-generation pipeline
@@ -341,17 +422,158 @@ def run_pipeline(
                         if judge_response:
                             print(f"Judge response key: {judge_response}")
 
-                    # if there is an explicit judge reaction phase, jump there, else go to next
-                    judge_phase_id = None
+                    # determine remaining statements for this cross-exam phase
+                    # find the CROSS_EXAMINATION phase id(s)
+                    cross_phase_id = None
                     for pid, p in trial_state.phases.items():
-                        if p.get("type") == "JUDGE_REACTION":
-                            judge_phase_id = pid
+                        if p.get("type") == "CROSS_EXAMINATION":
+                            cross_phase_id = pid
                             break
-                    next_phase_id = judge_phase_id or next_phase_id or trial_state.next_phase_id(current_phase_id)
+
+                    # collect all statements from the relevant testimony
+                    # attempt to locate the testimony used by the cross phase
+                    cross_phase = trial_state.phases.get(cross_phase_id, {}) if cross_phase_id else {}
+                    testimony_id = cross_phase.get("testimony_id")
+                    witness_id = cross_phase.get("witness_id")
+                    testimonies_obj = bundle.get("testimonies", {})
+                    testimony = None
+                    if isinstance(testimonies_obj, dict) and testimonies_obj.get("id") == testimony_id:
+                        testimony = testimonies_obj
+                    elif isinstance(testimonies_obj, dict) and testimony_id and testimony_id in testimonies_obj:
+                        testimony = testimonies_obj.get(testimony_id)
+                    elif isinstance(testimonies_obj, list):
+                        for t in testimonies_obj:
+                            if t.get("id") == testimony_id or (witness_id and t.get("witness_id") == witness_id):
+                                testimony = t
+                                break
+                    else:
+                        if isinstance(testimonies_obj, dict) and witness_id and testimonies_obj.get("witness_id") == witness_id:
+                            testimony = testimonies_obj
+
+                    all_statements = [s.get("id") for s in (testimony or {}).get("statements", [])]
+                    seen = {c.get("target_statement_id") for c in trial_state.player_choices if c.get("target_statement_id")}
+                    remaining = [s for s in all_statements if s not in seen]
+
+                    if remaining:
+                        # If there are remaining statements, return to CROSS_EXAMINATION by default
+                        print("Back to cross-examination.")
+                        next_phase_id = cross_phase_id or trial_state.next_phase_id(current_phase_id)
+                    else:
+                        # no remaining statements: proceed to judge reaction
+                        judge_phase_id = None
+                        for pid, p in trial_state.phases.items():
+                            if p.get("type") == "JUDGE_REACTION":
+                                judge_phase_id = pid
+                                break
+                        next_phase_id = judge_phase_id or next_phase_id or trial_state.next_phase_id(current_phase_id)
+
                     break
                 print("Please choose 1 or 2.")
 
+        elif phase_type == "FINAL_DEFENSE":
+            # Compile prior choices and let the defense present a closing argument
+            print("\nFinal Defense: craft your closing argument based on the case and choices made.")
+            prior_lines = []
+            for i, c in enumerate(trial_state.player_choices, start=1):
+                arg = c.get("presented_argument") or c.get("argument")
+                prior_lines.append(f"{i}. strategy={c.get('strategy')} target={c.get('target_statement_id')} arg={arg}")
+
+            summary_context = "\n".join(prior_lines) or bundle.get("case", {}).get("summary", "")
+
+            # run candidate generation for closing arguments
+            retrieved = retriever.similarity_search(summary_context, k=retrieval_k)
+            context = TrialContext(
+                case_id=bundle["case"]["id"],
+                case_title=bundle["case"]["title"],
+                summary=bundle["case"]["summary"],
+                current_phase=current_phase_id,
+                player_action=f"Closing argument request. Prior choices:\n{summary_context}",
+            )
+            prompt = build_prompt(context=context, adaptation=adaptation, retrieved=retrieved)
+            candidates = generate_candidates(
+                bundle=bundle,
+                adaptation=adaptation,
+                k=k,
+                prompt=prompt,
+                use_ollama=use_ollama,
+                ollama_model=ollama_model,
+            )
+
+            verified = [(cand, verify_candidate(bundle, cand, retrieved=retrieved)) for cand in candidates]
+            player_choices = print_player_choices(verified)
+            selected_candidate = choose_candidate(player_choices)
+
+            if selected_candidate is not None:
+                selected_verdict = next((verdict for cand, verdict in verified if cand.candidate_id == selected_candidate.candidate_id), None)
+                if selected_verdict is not None:
+                    # persist final defense as a player choice
+                    trial_state.record_choice(selected_candidate, selected_verdict)
+                    # attempt polishing the final defense
+                    final_text = selected_candidate.argument
+                    try:
+                        import importlib
+                        mod = importlib.import_module("project.generation.ollama_client")
+                        ollama_generate_json = getattr(mod, "ollama_generate_json", None)
+                    except Exception:
+                        ollama_generate_json = None
+
+                    if ollama_generate_json is not None:
+                        try:
+                            llm_out = ollama_generate_json(prompt=(
+                                f"Polish the following closing argument to be concise, persuasive, and natural: {final_text}\n"
+                                "Return a JSON array with one object containing the field 'argument' whose value is the polished line."
+                            ), model=ollama_model, temperature=adaptation.temperature)
+                            if isinstance(llm_out, list) and llm_out:
+                                first = llm_out[0]
+                                if isinstance(first, dict):
+                                    final_text = first.get("argument") or first.get("text")
+                                elif isinstance(first, str):
+                                    final_text = first
+                            elif isinstance(llm_out, dict):
+                                final_text = llm_out.get("argument") or llm_out.get("text")
+                            elif isinstance(llm_out, str):
+                                final_text = llm_out
+                        except Exception as e:
+                            print("[debug] polishing final defense failed:", e)
+
+                    print("\nFinal defense presented:")
+                    print(final_text)
+
+            next_phase_id = trial_state.next_phase_id(current_phase_id)
+
         elif phase_type == "VERDICT":
+            # Compute verdict based on case conditions and player's proven contradictions
+            conditions = bundle.get("case", {}).get("conditions", {}) or {}
+            required_contradictions = set(conditions.get("required_contradictions", []))
+
+            # collect successful contradicted statement ids from player choices
+            proven = {c.get("target_statement_id") for c in trial_state.player_choices if c.get("verdict_valid")}
+
+            # decision rule: if required_contradictions are all proven, the defense succeeds -> NOT GUILTY
+            if required_contradictions and required_contradictions.issubset(proven):
+                decision = "NOT GUILTY"
+                reason = f"Required contradictions proven: {sorted(list(required_contradictions))}"
+            else:
+                decision = "GUILTY"
+                missing = sorted(list(required_contradictions - proven)) if required_contradictions else []
+                reason = f"Missing required contradictions: {missing}" if required_contradictions else "No exculpatory contradictions were proven."
+
+            judge = bundle.get("judge", {})
+            judge_name = judge.get("name", "Judge")
+            print(f"\nJudge {judge_name}: THE COURT FINDS THE DEFENDANT {decision}.")
+            print(f"Reason: {reason}")
+
+            # persist verdict into trial_state and logs for replay
+            try:
+                trial_state.final_verdict = {"decision": decision, "reason": reason}
+            except Exception:
+                pass
+
+            try:
+                append_log(repo_root / "project" / "logs" / "runtime.jsonl", {"event": "verdict", "case_id": bundle.get("case", {}).get("id"), "decision": decision, "reason": reason})
+            except Exception:
+                pass
+
             print("Reached VERDICT. Ending trial loop.")
             break
 

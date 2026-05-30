@@ -23,11 +23,51 @@ pip install -r project/requirements.txt
 2. Run demo:
 
 ```bash
-python -m project.main --case-id case_001 --query "Challenge witness statement stmt_3"
+#run complete flow
+python -m project.main --case-id case_001
 
-#usa chroma DB e ollama model
-python -m project.main --case-id case_001 --query "Challenge witness statement stmt_3" --use-chroma --use-ollama --ollama-model llama3:8b
+#test a specific statement
+python -m project.main --case-id case_001 --query "Challenge witness statement stmt_3"
 ```
+
+## Development: watcher and iterative testing
+
+When you are editing `cases/`, `schemas/` or `project/prompts/` and want the Chroma collections to update automatically, run the reindex watcher in a separate terminal. The watcher debounces rapid file changes and will call the local reindex logic with `force=True` when relevant files change.
+
+Activate your virtualenv and install dependencies if you haven't already:
+
+```bash
+source .venv/bin/activate   # or your chosen venv activation
+pip install -r project/requirements.txt
+```
+
+Start the watcher (from the repository root):
+
+```bash
+python -m project.retrieval.reindex_watcher
+```
+
+Notes:
+
+- The watcher watches `cases/`, `schemas/`, and `project/prompts/`.
+- It is intended for local development only (not production).
+- If you prefer to reindex on-demand, run the pipeline with `--force-reindex`:
+
+```bash
+python -m project.main --case-id case_001 --use-chroma --force-reindex
+```
+
+Stopping the watcher: press `Ctrl+C` in the terminal running it.
+
+Logging and replay
+
+- Runtime events (player choices and the final verdict) are appended to `project/logs/runtime.jsonl`.
+- Final closing argument and final verdict are persisted into the runtime log for easy replay and analysis.
+
+Tips
+
+- If `ollama` is not installed or the model is unavailable, the code falls back to local template-based generators. Use `--no-ollama` to force template mode for deterministic testing.
+- To speed up iteration, run the watcher in a separate terminal while you edit cases; the pipeline will pick up reindexed collections automatically.
 
 ## Notes
 

@@ -193,6 +193,58 @@ def build_npc_reactions(
                     text = obj.get("text", "")
                     reactions.append(NPCReaction(npc_id=npc_id, npc_name=npc_name, role=role, trigger=trigger, mood=mood, text=text))
                 if reactions:
+                    # Ensure important roles have non-empty reactions; fallback to template-driven replies when needed
+                    role_map = {r.role.lower(): r for r in reactions}
+
+                    # Judge fallback
+                    if "judge" not in role_map or not role_map.get("judge").text.strip():
+                        jr = _judge_reaction(bundle, candidate, verdict)
+                        # place judge at front
+                        reactions.insert(0, jr)
+
+                    # Witness fallback
+                    if "witness" not in role_map or not role_map.get("witness").text.strip():
+                        wr = _witness_reaction(bundle, candidate, verdict)
+                        if wr is not None:
+                            reactions.append(wr)
+
+                    # Prosecutor fallback
+                    if "prosecutor" not in role_map or not role_map.get("prosecutor").text.strip():
+                        prosecutor = bundle.get("prosecutor", {})
+                        proc_templates = prosecutor.get("reaction_templates", {})
+                        if verdict.valid:
+                            counter_text = None
+                            if proc_templates.get("counter_objection"):
+                                counter_text = proc_templates.get("counter_objection")[0]
+                            else:
+                                counter_text = "Objection — the evidence does not support that inference, Your Honor."
+                            reactions.append(
+                                NPCReaction(
+                                    npc_id=prosecutor.get("id", "prosecutor"),
+                                    npc_name=prosecutor.get("name", "Prosecutor"),
+                                    role="prosecutor",
+                                    trigger="counter",
+                                    mood="combative",
+                                    text=counter_text,
+                                )
+                            )
+                        else:
+                            support_text = None
+                            if proc_templates.get("support_objection"):
+                                support_text = proc_templates.get("support_objection")[0]
+                            else:
+                                support_text = "The court should note that the prosecution's evidence remains compelling."
+                            reactions.append(
+                                NPCReaction(
+                                    npc_id=prosecutor.get("id", "prosecutor"),
+                                    npc_name=prosecutor.get("name", "Prosecutor"),
+                                    role="prosecutor",
+                                    trigger="support",
+                                    mood="confident",
+                                    text=support_text,
+                                )
+                            )
+
                     return reactions
         except Exception as e:
             print(f"[debug] LLM-driven NPC reactions failed: {e}")

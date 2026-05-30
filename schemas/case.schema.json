@@ -62,7 +62,7 @@
           },
           "type": {
             "type": "string",
-            "enum": ["INTRO", "INVESTIGATION", "TESTIMONY", "CROSS_EXAMINATION", "ARGUMENTATION", "JUDGE_REACTION", "VERDICT"],
+            "enum": ["INTRO", "INVESTIGATION", "TESTIMONY", "CROSS_EXAMINATION", "ARGUMENTATION", "JUDGE_REACTION", "FINAL_DEFENSE", "VERDICT"],
             "description": "Phase type"
           },
           "scene": {

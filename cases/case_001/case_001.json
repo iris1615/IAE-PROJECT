@@ -76,6 +76,12 @@
     },
 
     {
+      "id": "final_defense",
+      "type": "FINAL_DEFENSE",
+      "note": "Defense delivers closing argument summarizing gathered contradictions and evidence."
+    },
+
+    {
       "id": "verdict",
       "type": "VERDICT",
       "conditions": {
