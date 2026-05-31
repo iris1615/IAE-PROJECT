@@ -1,0 +1,15 @@
+{
+  "$schema": "../../../schemas/evidence.schema.json",
+  "_case_ref": "./case_002.json",
+
+    "id": "vitamin_bottle",
+    "name": "Supplement Bottle (Patrícia's Desk)",
+    "description": "A generic white supplement bottle labeled 'Taurine 500mg - Sports Performance' found in the bottom drawer of Patrícia's desk. The bottle is nearly empty. Lab analysis confirms it contains the same concentrated taurine compound found in the energy drink can.",
+    "type": "OBJECT",
+    "location": "HR office, Patrícia's desk drawer",
+    "discovered_by": "forensics_team",
+    "reveals": ["patricia_had_taurine", "compound_match", "premeditation"],
+    "can_contradict": [],
+    "court_record_visible": false,
+    "unlock_condition": "investigation_2_completed"
+}

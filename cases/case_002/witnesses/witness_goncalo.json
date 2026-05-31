@@ -1,0 +1,49 @@
+{
+  "$schema": "../../../schemas/witness.schema.json",
+  "id": "witness_goncalo",
+  "_case_ref": "../case_002.json",
+
+  "role": "witness",
+
+  "name": "Gonçalo Beirão",
+  "occupation": "Administrative Assistant (reported to Renato Figueiredo)",
+
+  "personality": {
+    "confidence": 3,
+    "honesty": 9,
+    "anxiety": 8,
+    "aggression": 1,
+    "intelligence": 6
+  },
+
+  "speech_style": {
+    "hesitation": 9,
+    "formality": 5,
+    "verbose": true,
+    "dialect": "",
+    "description": "Speaks in long, rambling sentences that frequently circle back to anecdotes about Renato. Genuinely emotional. Will tear up unexpectedly. Does not lie but sometimes misremembers. Uses the phrase 'the thing is' approximately every 40 words."
+  },
+
+  "behavior_rules": [
+    "Will volunteer information about how great Renato was even when not asked.",
+    "Gets confused between what he actually witnessed and what he was told after the fact.",
+    "Highly susceptible to leading questions — not maliciously, just genuinely unsure of his own memory.",
+    "Will apologise mid-sentence if he thinks he's saying something negative about anyone.",
+    "The one honest person in the room. Paradoxically the hardest to cross-examine because there's nothing to hide."
+  ],
+
+  "hidden_information": [
+    "Called Renato on Sunday evening around 20:05 but didn't pick up (his phone was on silent during his nephew's birthday dinner).",
+    "Knew about Renato's heart condition — Renato had told him confidentially after a hospital appointment three months ago.",
+    "Renato had specifically told Gonçalo he considered energy drinks 'an affront to discipline'.",
+    "Noticed the energy drink on Renato's desk on Friday afternoon and found it strange — it wasn't there Thursday."
+  ],
+
+  "relationship_to_victim": "Deeply loyal. Gonçalo was the only person in the office who genuinely liked Renato and understood his particular brand of impossible standards as a form of care. He is visibly grieving.",
+
+  "relationship_to_suspect": "Polite but distant with Patrícia. Was aware of tension between her and Renato but stayed out of it.",
+
+  "alibi": "At his nephew's birthday dinner from 18:00 to 22:30. Alibi is solid and verified by 11 family members.",
+
+  "credibility": 0.91
+}

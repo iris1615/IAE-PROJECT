@@ -1,0 +1,48 @@
+{
+  "$schema": "../../../schemas/testimony.schema.json",
+  "_case_ref": "./case_002.json",
+
+
+    "id": "testimony_helder_1",
+    "_witness_ref": "./witnesses/witness_helder.json",
+    "witness_id": "witness_helder",
+    "topic": "Hélder's activities on Sunday and what he observed",
+
+    "statements": [
+      {
+        "id": "stmt_h1",
+        "text": "I had nothing against Renato personally. Professionally — look, he blocked my infrastructure budget three years running. But that's just... that's just how it goes.",
+        "emotion": "nervous",
+        "can_press": true,
+        "press_response": "I mean — yes, it was frustrating. We're running on servers from 2014 because he kept saying 'insufficient ROI'. Do you know what that means for system uptime? But I didn't — this isn't relevant.",
+        "truthfulness": true
+      },
+      {
+        "id": "stmt_h2",
+        "text": "I was doing a server migration on Sunday. Critical update. Couldn't wait.",
+        "emotion": "evasive",
+        "can_press": true,
+        "press_response": "Remote. I was working remotely. The logs will show all the activity.",
+        "contradicted_by": "evidence_cctv_garage",
+        "truthfulness": true
+      },
+      {
+        "id": "stmt_h3",
+        "text": "I was home all Sunday. I didn't go into the office. There was no reason for me to be there.",
+        "emotion": "defensive",
+        "can_press": true,
+        "press_response": "I really was working — the migration is documented. You can check the server logs.",
+        "contradicted_by": "evidence_cctv_garage",
+        "truthfulness": false
+      },
+      {
+        "id": "stmt_h4",
+        "text": "I didn't see anyone near Renato's area on Sunday. I wouldn't know anything about what happened on the main floor.",
+        "emotion": "evasive",
+        "can_press": true,
+        "press_response": "I mean... I might have been in the corridor at some point. For coffee. I don't remember specifically.",
+        "truthfulness": false
+      }
+    ]
+  }
+

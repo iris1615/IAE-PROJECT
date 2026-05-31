@@ -1,0 +1,14 @@
+{
+  "$schema": "../../../schemas/evidence.schema.json",
+  "_case_ref": "./case_002.json",
+
+    "id": "printer_log",
+    "name": "Office Printer Activity Log",
+    "description": "The 7th floor printer's internal log, recovered by IT. Shows one print job on Sunday: initiated at 20:14:37 from workstation PSOUSA-PC (assigned to Patrícia Sousa). Document name: 'Meeting_Notes_Friday_FINAL_v3.docx'.",
+    "type": "DOCUMENT",
+    "location": "Server room, 7th floor",
+    "discovered_by": "witness_helder",
+    "reveals": ["patricia_in_office_sunday", "alibi_document_printed", "timestamp_inconsistency"],
+    "can_contradict": ["stmt_p2"],
+    "court_record_visible": true
+}

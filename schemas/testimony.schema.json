@@ -40,7 +40,7 @@
         "properties": {
           "id": {
             "type": "string",
-            "pattern": "^stmt_[0-9]+$",
+            "pattern": "^stmt_[a-z0-9]+$",
             "description": "Unique statement identifier"
           },
           "text": {

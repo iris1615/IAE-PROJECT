@@ -1,0 +1,14 @@
+{
+  "$schema": "../../../schemas/evidence.schema.json",
+  "_case_ref": "./case_002.json",
+
+    "id": "energy_drink_can",
+    "name": "Energy Drink Can (\"ZapMax\")",
+    "description": "A half-empty can of ZapMax energy drink found on Renato's desk. The label appears slightly misaligned — as though it was reprinted and reapplied. Toxicology found taurine at 8x normal concentration.",
+    "type": "OBJECT",
+    "location": "Renato's desk, 7th floor",
+    "discovered_by": "forensics_team",
+    "reveals": ["tampered_beverage", "taurine_overdose", "label_reprinted"],
+    "can_contradict": ["stmt_g4"],
+    "court_record_visible": true
+}

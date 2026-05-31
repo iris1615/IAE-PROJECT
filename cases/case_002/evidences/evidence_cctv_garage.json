@@ -1,0 +1,14 @@
+{
+  "$schema": "../../../schemas/evidence.schema.json",
+  "_case_ref": "./case_002.json",
+
+    "id": "cctv_garage",
+    "name": "Parking Garage CCTV Footage",
+    "description": "CCTV footage from the building's underground garage. Shows Patrícia Sousa's Volkswagen Polo entering at 19:09 and exiting at 20:41. Also shows Hélder Magalhães' Renault Clio, which entered at 18:55 and exited at 21:12.",
+    "type": "RECORDING",
+    "location": "Building security office, basement",
+    "discovered_by": "defense_attorney",
+    "reveals": ["patricia_in_office_sunday", "helder_in_office_sunday", "exit_timestamps"],
+    "can_contradict": ["stmt_p2", "stmt_h3"],
+    "court_record_visible": true
+}

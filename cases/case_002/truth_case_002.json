@@ -1,0 +1,125 @@
+{
+  "$schema": "../../schemas/truth.schema.json",
+  "case_id": "case_002",
+  "_case_ref": "./case_002.json",
+
+  "timeline": [
+    {
+      "time": "18:45",
+      "event": "Renato arrives at the office on Sunday, as was his habit, to 'catch up on reports nobody asked for'",
+      "location": "7th floor, open-plan office",
+      "witness": "witness_goncalo"
+    },
+    {
+      "time": "19:10",
+      "event": "Patrícia enters the building via the parking garage (badge swipe logged). She takes the stairs to avoid the lobby camera.",
+      "location": "Parking garage → stairwell B",
+      "witness": ""
+    },
+    {
+      "time": "19:22",
+      "event": "Patrícia places a doctored energy drink on Renato's desk while he is in the bathroom. She retreats to her own office.",
+      "location": "HR office, 7th floor",
+      "witness": ""
+    },
+    {
+      "time": "19:35",
+      "event": "Renato returns to his desk. Finds the energy drink, assumes it was left by Gonçalo as a peace offering.",
+      "location": "Renato's desk",
+      "witness": ""
+    },
+    {
+      "time": "19:50",
+      "event": "Renato drinks approximately half the can over the next 15 minutes.",
+      "location": "Renato's desk",
+      "witness": ""
+    },
+    {
+      "time": "20:05",
+      "event": "Renato begins to feel unwell. He calls Gonçalo, who doesn't pick up.",
+      "location": "Renato's desk",
+      "witness": ""
+    },
+    {
+      "time": "20:14",
+      "event": "Patrícia, still in the building, prints a document from her workstation — an alibi memo she backdated to appear sent on Friday.",
+      "location": "HR office, 7th floor",
+      "witness": ""
+    },
+    {
+      "time": "20:30",
+      "event": "Renato loses consciousness. Cardiac arrest caused by taurine overdose compounded with his undisclosed heart condition.",
+      "location": "Renato's desk",
+      "witness": ""
+    },
+    {
+      "time": "20:41",
+      "event": "Patrícia leaves the building via stairwell B. CCTV in the garage records her car exiting.",
+      "location": "Parking garage",
+      "witness": ""
+    },
+    {
+      "time": "08:10",
+      "event": "Cleaning staff discovers Renato slumped at his desk. The energy drink can is still on the desk, half-empty.",
+      "location": "7th floor, open-plan office",
+      "witness": "witness_goncalo"
+    }
+  ],
+
+  "facts": [
+    {
+      "id": "fact_001",
+      "truth": "Patrícia was in the office on Sunday evening despite claiming otherwise.",
+      "category": "location",
+      "related_statement": "stmt_p2"
+    },
+    {
+      "id": "fact_002",
+      "truth": "The energy drink was purchased by Patrícia and had its label replaced to disguise a manipulated taurine concentration.",
+      "category": "evidence",
+      "related_statement": "stmt_g4"
+    },
+    {
+      "id": "fact_003",
+      "truth": "Renato never willingly consumed energy drinks. He considered them 'beverages for people who can't manage their own time.'",
+      "category": "witness",
+      "related_statement": "stmt_g4"
+    },
+    {
+      "id": "fact_004",
+      "truth": "The printer log records a print job from Patrícia's workstation at 20:14 on Sunday.",
+      "category": "evidence",
+      "related_statement": "stmt_p2"
+    },
+    {
+      "id": "fact_005",
+      "truth": "Hélder was also in the office that evening, working on a server migration he hadn't reported. He saw Patrícia but said nothing.",
+      "category": "witness",
+      "related_statement": "stmt_h3"
+    },
+    {
+      "id": "fact_006",
+      "truth": "Patrícia had received a disciplinary email from Renato the previous Thursday, threatening formal proceedings over falsified team hours.",
+      "category": "motive",
+      "related_statement": ""
+    },
+    {
+      "id": "fact_007",
+      "truth": "Renato had an undisclosed hypertrophic cardiomyopathy diagnosis, making even a moderate taurine overdose potentially fatal.",
+      "category": "opportunity",
+      "related_statement": ""
+    }
+  ],
+
+  "culprit": "witness_patricia",
+
+  "motive": "Patrícia stood to be formally dismissed following Renato's disciplinary report. She had falsified overtime records for three members of her team to cover for a project she had mismanaged. Renato had discovered the discrepancy during a routine audit.",
+
+  "method": "Patrícia substituted a standard energy drink with one she had tampered with — concentrating the taurine content to approximately 8x the normal dose. Given Renato's heart condition (which she learned about from his HR file — a perk of being Head of HR), she calculated the risk correctly.",
+
+  "hidden_clues": [
+    "The disciplinary_email in Renato's inbox is dated Thursday but was flagged as 'read' on Sunday at 19:48 — after Renato had already drunk the can",
+    "The vitamin_bottle in Patrícia's office contains the same concentrated taurine compound found in the drink",
+    "Hélder's server migration logs show he was actively working in the server room from 19:00 to 21:00 — he is a witness, not the culprit"
+  ]
+}

@@ -41,7 +41,7 @@
       "type": "array",
       "items": {
         "type": "string",
-        "pattern": "^stmt_[0-9]+$"
+        "pattern": "^stmt_[a-zA-Z0-9]+$"
       },
       "description": "Array of statement IDs this evidence can contradict"
     },

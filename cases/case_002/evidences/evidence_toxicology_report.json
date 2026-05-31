@@ -1,0 +1,15 @@
+{
+  "$schema": "../../../schemas/evidence.schema.json",
+  "_case_ref": "./case_002.json",
+
+
+    "id": "toxicology_report",
+    "name": "Toxicology Report",
+    "description": "Official forensic toxicology report on Renato Figueiredo. Cause of death: acute cardiac event precipitated by taurine toxicity in context of undisclosed hypertrophic cardiomyopathy. Taurine concentration in bloodstream consistent with ingestion of approximately 8x the standard energy drink dose.",
+    "type": "DOCUMENT",
+    "location": "Forensics lab",
+    "discovered_by": "prosecution",
+    "reveals": ["cause_of_death", "taurine_concentration", "heart_condition"],
+    "can_contradict": ["stmt_g4"],
+    "court_record_visible": true
+}

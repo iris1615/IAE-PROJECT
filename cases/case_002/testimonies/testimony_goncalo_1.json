@@ -1,0 +1,47 @@
+{
+  "$schema": "../../../schemas/testimony.schema.json",
+  "id": "testimony_goncalo_1",
+  "_case_ref": "./case_002.json",
+  "_witness_ref": "./witnesses/witness_goncalo.json",
+  "witness_id": "witness_goncalo",
+
+  "topic": "Renato's habits, the energy drink, and Sunday evening",
+
+    "statements": [
+      {
+        "id": "stmt_g1",
+        "text": "Renato — Dr. Figueiredo — was very dedicated. He came in on Sundays sometimes. He said weekends were for people who had finished their work.",
+        "emotion": "calm",
+        "can_press": true,
+        "press_response": "He actually said that to me once. I thought he was joking but then I realised he wasn't.",
+        "truthfulness": true
+      },
+      {
+        "id": "stmt_g2",
+        "text": "I noticed something on his desk on Friday — a can of that energy drink. ZapMax. I remember thinking it was strange because it wasn't there Thursday. I just assumed someone had left it.",
+        "emotion": "confused",
+        "can_press": true,
+        "press_response": "The thing is, Renato's desk was very organised. He didn't like things that weren't his on it. He would have moved it or thrown it out, except... he didn't. Which means he thought it was meant for him.",
+        "truthfulness": true
+      },
+      {
+        "id": "stmt_g3",
+        "text": "I was at my nephew's birthday on Sunday. I missed a call from Renato at eight. My phone was on silent. I should have — I always pick up, that was the one time I—",
+        "emotion": "nervous",
+        "can_press": true,
+        "press_response": "He only ever called me if something was urgent. Or if the printer had done something. In retrospect... I should have called back.",
+        "truthfulness": true
+      },
+      {
+        "id": "stmt_g4",
+        "text": "Renato never drank energy drinks. Ever. He considered them — his exact words — 'an affront to personal discipline'. He had a thing about proper sleep schedules. It was practically a speech.",
+        "emotion": "confident",
+        "can_press": true,
+        "press_response": "I'm telling you, if that drink was on his desk, someone put it there for him to find. He would have thought it was a gift. He would have assumed someone was trying to be kind.",
+        "contradicted_by": "evidence_toxicology_report",
+        "truthfulness": true,
+        "note": "The contradiction here is not that Gonçalo is lying — he is entirely truthful. The contradiction is that the toxicology report confirms taurine poisoning, which CONFIRMS his testimony and implicates whoever placed the drink. This is a supporting contradiction: presenting the report during cross-exam unlocks the 'drink_was_planted' narrative."
+      }
+    ]
+  }
+

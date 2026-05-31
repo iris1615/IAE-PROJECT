@@ -1,0 +1,49 @@
+{
+  "$schema": "../../../schemas/witness.schema.json",
+  "id": "witness_helder",
+  "_case_ref": "../case_002.json",
+
+  "role": "witness",
+
+  "name": "Hélder Magalhães",
+  "occupation": "IT Manager, Grupo Atlântico",
+
+  "personality": {
+    "confidence": 4,
+    "honesty": 6,
+    "anxiety": 7,
+    "aggression": 2,
+    "intelligence": 8
+  },
+
+  "speech_style": {
+    "hesitation": 6,
+    "formality": 3,
+    "verbose": false,
+    "dialect": "",
+    "description": "Speaks in short, technical sentences. Drops subjects and articles when nervous. Uses IT terminology as a comfort mechanism. Tends to trail off when he knows he's said something incriminating."
+  },
+
+  "behavior_rules": [
+    "Looks at hands or the ceiling when uncomfortable.",
+    "Gives one-word answers and then immediately expands if he thinks the short answer sounded suspicious.",
+    "Instinctively more honest than he intends to be.",
+    "Has a deep, poorly concealed relief that Renato is gone — Renato rejected every IT budget request for three years.",
+    "Will mention the server migration unprompted as his alibi, even before asked."
+  ],
+
+  "hidden_information": [
+    "Was in the office Sunday evening doing an unreported server migration.",
+    "Saw Patrícia in the corridor around 19:20 but assumed she was working late.",
+    "Did not realise what he witnessed until after the investigation began.",
+    "Has not told anyone because he was also not supposed to be there (the migration was off-books to avoid Renato's budget approval)."
+  ],
+
+  "relationship_to_victim": "Antagonistic. Renato had blocked every IT modernisation request Hélder submitted for three consecutive years, citing 'insufficient ROI documentation'. Hélder once described Renato as 'a human CAPTCHA'.",
+
+  "relationship_to_suspect": "Colleagues. Hélder and Patrícia are on cordial terms — they bonded over shared Renato frustrations at the company retreat.",
+
+  "alibi": "Claims to have been working remotely from home on a server migration. The migration is real and documented in server logs, but the logs show he was physically present in the server room, not remote.",
+
+  "credibility": 0.72
+}

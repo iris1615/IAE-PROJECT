@@ -1,0 +1,55 @@
+{
+  "$schema": "../../../schemas/witness.schema.json",
+  "id": "witness_patricia",
+  "_case_ref": "../case_002.json",
+
+  "role": "defendant",
+
+  "name": "Patrícia Sousa",
+  "occupation": "Head of Human Resources, Grupo Atlântico",
+
+  
+  "personality": {
+    "confidence": 8,
+    "honesty": 2,
+    "anxiety": 6,
+    "aggression": 5,
+    "intelligence": 9
+  },
+
+  "speech_style": {
+    "hesitation": 3,
+    "formality": 9,
+    "verbose": true,
+    "dialect": "",
+    "description": "Speaks in complete, rehearsed sentences. Uses HR jargon as a deflection tactic. Rarely gives a direct yes or no. When cornered, pivots to vague procedural language."
+  },
+
+  "behavior_rules": [
+    "Never admits fault directly — reframes every accusation as a 'misunderstanding of process'.",
+    "Maintains eye contact even when lying — she's practiced.",
+    "Shifts to passive voice when discussing actions she performed: 'a document was printed' not 'I printed a document'.",
+    "Gets visibly irritated if her professionalism is questioned.",
+    "Will reference her 12 years of experience unprompted when threatened."
+  ],
+
+  "hidden_information": [
+    "Was in the office Sunday evening.",
+    "Planted the tampered energy drink on Renato's desk.",
+    "Learned about Renato's heart condition from his confidential medical file (accessed via HR system).",
+    "The printed document was a fabricated alibi memo.",
+    "Purchased taurine supplements three weeks before the incident.",
+    "Faced termination and potential legal liability if Renato's disciplinary report was submitted. Knew about his heart condition through confidential HR files. Calculated that a taurine overdose would look like natural causes."
+  ],
+
+  "relationship_to_victim": "Professional adversary. Renato had audited her team's overtime claims and discovered falsified records. He had submitted a formal complaint draft that would have triggered a disciplinary process against her.",
+
+  "relationship_to_suspect": "N/A — she is the defendant.",
+
+  "alibi": "Claims to have been at home all Sunday. Says she ordered takeaway at 19:30 (delivery app record exists but only proves an order was placed, not that she was home).",
+
+
+  "credibility": 0.25
+
+  
+}

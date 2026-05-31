@@ -1,0 +1,174 @@
+{
+  "$schema": "../../schemas/case.schema.json",
+  "id": "case_002",
+  "title": "The Printer Did It",
+  "difficulty": 2,
+
+  "summary": "Renato Figueiredo, a notoriously petty financial controller, is found dead at his desk on a Monday morning — cold coffee in hand, head slumped onto a tower of expense reports. Officially: cardiac arrest. Unofficially: three people had reason to want him gone, a suspicious energy drink sits untouched on his desk, and the office printer — which he managed with an iron fist — was mysteriously reset the night before.",
+
+  "canonical_truth_id": "truth_case_002",
+  "_truth_ref": "./truth_case_002.json",
+  "_evidence_ref": "./evidences/",
+  "_testimonies_ref": "./testimonies/",
+  "_witnesses_ref": "./witnesses/",
+
+  "phases": [
+    {
+      "id": "intro",
+      "type": "INTRO",
+      "scene": "courtroom_opening"
+    },
+
+    {
+      "id": "investigation_1",
+      "type": "INVESTIGATION",
+      "locations": [
+        "crime_scene_office",
+        "break_room",
+        "server_room",
+        "hr_office"
+      ],
+      "evidence_unlocks": [
+        "energy_drink_can",
+        "expense_report_stack",
+        "printer_log",
+        "disciplinary_email"
+      ]
+    },
+
+    {
+      "id": "testimony_1",
+      "type": "TESTIMONY",
+      "witness_id": "witness_patricia",
+      "testimony_id": "testimony_patricia_1"
+    },
+
+    {
+      "id": "cross_exam_1",
+      "type": "CROSS_EXAMINATION",
+      "witness_id": "witness_patricia",
+      "contradictions": [
+        {
+          "statement_id": "stmt_p2",
+          "correct_evidence": "evidence_printer_log",
+          "success": {
+            "next_phase": "argument_1",
+            "penalty": 0
+          },
+          "failure": {
+            "penalty": 1,
+            "judge_response": "generic_penalty"
+          }
+        }
+      ]
+    },
+
+    {
+      "id": "argument_1",
+      "type": "ARGUMENTATION"
+    },
+
+    {
+      "id": "judge_reaction_1",
+      "type": "JUDGE_REACTION"
+    },
+
+    {
+      "id": "investigation_2",
+      "type": "INVESTIGATION",
+      "locations": [
+        "toxicology_lab",
+        "break_room",
+        "parking_garage"
+      ],
+      "evidence_unlocks": [
+        "toxicology_report",
+        "cctv_garage",
+        "vitamin_bottle"
+      ]
+    },
+
+    {
+      "id": "testimony_2",
+      "type": "TESTIMONY",
+      "witness_id": "witness_helder",
+      "testimony_id": "testimony_helder_1"
+    },
+
+    {
+      "id": "cross_exam_2",
+      "type": "CROSS_EXAMINATION",
+      "witness_id": "witness_helder",
+      "contradictions": [
+        {
+          "statement_id": "stmt_h3",
+          "correct_evidence": "evidence_cctv_garage",
+          "success": {
+            "next_phase": "testimony_3",
+            "penalty": 0
+          },
+          "failure": {
+            "penalty": 1,
+            "judge_response": "generic_penalty"
+          }
+        }
+      ]
+    },
+
+    {
+      "id": "testimony_3",
+      "type": "TESTIMONY",
+      "witness_id": "witness_goncalo",
+      "testimony_id": "testimony_goncalo_1"
+    },
+
+    {
+      "id": "cross_exam_3",
+      "type": "CROSS_EXAMINATION",
+      "witness_id": "witness_goncalo",
+      "contradictions": [
+        {
+          "statement_id": "stmt_g4",
+          "correct_evidence": "evidence_toxicology_report",
+          "success": {
+            "next_phase": "argument_2",
+            "penalty": 0
+          },
+          "failure": {
+            "penalty": 1,
+            "judge_response": "generic_penalty"
+          }
+        }
+      ]
+    },
+
+    {
+      "id": "argument_2",
+      "type": "ARGUMENTATION"
+    },
+
+    {
+      "id": "judge_reaction_2",
+      "type": "JUDGE_REACTION"
+    },
+
+    {
+      "id": "final_defense",
+      "type": "FINAL_DEFENSE"
+    },
+
+    {
+      "id": "verdict",
+      "type": "VERDICT",
+      "conditions": {
+        "required_contradictions": ["stmt_p2", "stmt_g4"],
+        "optional_contradictions": ["stmt_h3"],
+        "scoring": {
+          "all_three": "perfect_verdict",
+          "required_only": "guilty_verdict",
+          "missing_required": "not_guilty"
+        }
+      }
+    }
+  ]
+}

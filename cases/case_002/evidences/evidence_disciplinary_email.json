@@ -1,0 +1,14 @@
+{
+  "$schema": "../../../schemas/evidence.schema.json",
+  "_case_ref": "./case_002.json",
+
+    "id": "disciplinary_email",
+    "name": "Disciplinary Email (Draft)",
+    "description": "An email drafted by Renato to HR's parent director, detailing irregularities in overtime records submitted by Patrícia Sousa's team. The draft was saved Thursday. It was marked 'read' from Renato's inbox at Sunday 19:48 — after he had already consumed part of the drink.",
+    "type": "DOCUMENT",
+    "location": "Renato's email inbox, accessed via his unlocked workstation",
+    "discovered_by": "defense_attorney",
+    "reveals": ["patricia_motive", "falsified_overtime", "email_read_timestamp"],
+    "can_contradict": [],
+    "court_record_visible": true
+}

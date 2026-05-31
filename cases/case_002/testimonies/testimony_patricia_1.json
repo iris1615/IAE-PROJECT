@@ -1,0 +1,46 @@
+{
+  "$schema": "../../../schemas/testimony.schema.json",
+  "_case_ref": "./case_002.json",
+    "id": "testimony_patricia_1",
+    "_witness_ref": "./witnesses/witness_patricia.json",
+    "witness_id": "witness_patricia",
+    "topic": "Patrícia's whereabouts on Sunday and her relationship with the victim",
+
+    "statements": [
+      {
+        "id": "stmt_p1",
+        "text": "My relationship with Mr. Figueiredo was entirely professional. We had disagreements, as colleagues do. That is normal in a results-driven organisation.",
+        "emotion": "confident",
+        "can_press": true,
+        "press_response": "There was a procedural matter under review. I was managing it through the appropriate internal channels. I don't think it's relevant.",
+        "contradicted_by": "evidence_disciplinary_email",
+        "truthfulness": true
+      },
+      {
+        "id": "stmt_p2",
+        "text": "On Sunday I was at home all day. I ordered dinner at half past seven and spent the evening reviewing some documents. I had no reason to go into the office.",
+        "emotion": "calm",
+        "can_press": true,
+        "press_response": "I have a delivery confirmation on my phone. I'm happy to provide it.",
+        "contradicted_by": "evidence_printer_log",
+        "truthfulness": false
+      },
+      {
+        "id": "stmt_p3",
+        "text": "I learned about Mr. Figueiredo's passing Monday morning, like everyone else. It was a shock. Regardless of professional differences, no one wants to hear that.",
+        "emotion": "evasive",
+        "can_press": true,
+        "press_response": "I don't think my emotional response to a colleague's death is relevant to these proceedings.",
+        "truthfulness": true
+      },
+      {
+        "id": "stmt_p4",
+        "text": "I have never purchased or consumed energy drinks. I don't see how a product found on Mr. Figueiredo's desk has anything to do with me.",
+        "emotion": "defensive",
+        "can_press": true,
+        "press_response": "I really must object to this line of questioning. The insinuation is frankly offensive.",
+        "contradicted_by": "evidence_vitamin_bottle",
+        "truthfulness": false
+      }
+    ]
+  }

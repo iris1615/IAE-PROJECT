@@ -1,0 +1,14 @@
+{
+  "$schema": "../../../schemas/evidence.schema.json",
+  "_case_ref": "./case_002.json",
+
+    "id": "expense_report_stack",
+    "name": "Expense Report Stack",
+    "description": "A 47-page tower of expense reports on Renato's desk, each annotated with red pen. The top report has 'DENIED – INSUFFICIENT JUSTIFICATION' written in block letters over a lunch claim for €8.50.",
+    "type": "DOCUMENT",
+    "location": "Renato's desk, 7th floor",
+    "discovered_by": "defense_attorney",
+    "reveals": ["renato_personality", "office_culture", "potential_motives_multiple"],
+    "can_contradict": [],
+    "court_record_visible": true
+}
