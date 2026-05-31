@@ -9,7 +9,7 @@ from project.generation.candidate_generator import generate_candidates
 from project.logs.logger import append_log
 from project.reactions.engine import build_npc_reactions
 from project.prompts.prompt_builder import build_prompt
-from project.retrieval.loader import build_documents, load_case_bundle
+from project.retrieval.loader import build_documents, get_testimony, load_case_bundle
 from project.retrieval.store import LocalRetriever
 from project.ui.cli_demo import choose_candidate, print_player_choices, print_reactions
 from project.verifier.symbolic_verifier import verify_candidate
@@ -67,7 +67,7 @@ def run_pipeline(
 
         elif phase_type == "TESTIMONY":
             testimony_id = phase.get("testimony_id")
-            testimony = bundle.get("testimonies", {})
+            testimony = get_testimony(bundle, testimony_id=testimony_id, witness_id=phase.get("witness_id"))
             print("Testimony:")
             for stmt in testimony.get("statements", []):
                 print(f"- {stmt.get('id')}: {stmt.get('text')}")
@@ -77,23 +77,7 @@ def run_pipeline(
             # Let player choose which statement to challenge (cross-examination)
             testimony_id = phase.get("testimony_id")
             witness_id = phase.get("witness_id")
-            testimonies_obj = bundle.get("testimonies", {})
-
-            # testimonies may be a single dict (as in cases/testimonies.json) or a mapping
-            testimony = None
-            if isinstance(testimonies_obj, dict) and testimonies_obj.get("id") == testimony_id:
-                testimony = testimonies_obj
-            elif isinstance(testimonies_obj, dict) and testimony_id and testimony_id in testimonies_obj:
-                testimony = testimonies_obj.get(testimony_id)
-            elif isinstance(testimonies_obj, list):
-                for t in testimonies_obj:
-                    if t.get("id") == testimony_id or (witness_id and t.get("witness_id") == witness_id):
-                        testimony = t
-                        break
-            else:
-                # fallback: if it's a dict but not keyed by id, try to match by witness_id
-                if isinstance(testimonies_obj, dict) and witness_id and testimonies_obj.get("witness_id") == witness_id:
-                    testimony = testimonies_obj
+            testimony = get_testimony(bundle, testimony_id=testimony_id, witness_id=witness_id)
 
             statements = (testimony or {}).get("statements", [])
             if not statements:
@@ -324,20 +308,7 @@ def run_pipeline(
             cross_phase = trial_state.phases.get(cross_phase_id, {}) if cross_phase_id else {}
             testimony_id = cross_phase.get("testimony_id")
             witness_id = cross_phase.get("witness_id")
-            testimonies_obj = bundle.get("testimonies", {})
-            testimony = None
-            if isinstance(testimonies_obj, dict) and testimonies_obj.get("id") == testimony_id:
-                testimony = testimonies_obj
-            elif isinstance(testimonies_obj, dict) and testimony_id and testimony_id in testimonies_obj:
-                testimony = testimonies_obj.get(testimony_id)
-            elif isinstance(testimonies_obj, list):
-                for t in testimonies_obj:
-                    if t.get("id") == testimony_id or (witness_id and t.get("witness_id") == witness_id):
-                        testimony = t
-                        break
-            else:
-                if isinstance(testimonies_obj, dict) and witness_id and testimonies_obj.get("witness_id") == witness_id:
-                    testimony = testimonies_obj
+            testimony = get_testimony(bundle, testimony_id=testimony_id, witness_id=witness_id)
 
             all_statements = [s.get("id") for s in (testimony or {}).get("statements", [])]
             seen = {c.get("target_statement_id") for c in trial_state.player_choices if c.get("target_statement_id")}
@@ -435,20 +406,7 @@ def run_pipeline(
                     cross_phase = trial_state.phases.get(cross_phase_id, {}) if cross_phase_id else {}
                     testimony_id = cross_phase.get("testimony_id")
                     witness_id = cross_phase.get("witness_id")
-                    testimonies_obj = bundle.get("testimonies", {})
-                    testimony = None
-                    if isinstance(testimonies_obj, dict) and testimonies_obj.get("id") == testimony_id:
-                        testimony = testimonies_obj
-                    elif isinstance(testimonies_obj, dict) and testimony_id and testimony_id in testimonies_obj:
-                        testimony = testimonies_obj.get(testimony_id)
-                    elif isinstance(testimonies_obj, list):
-                        for t in testimonies_obj:
-                            if t.get("id") == testimony_id or (witness_id and t.get("witness_id") == witness_id):
-                                testimony = t
-                                break
-                    else:
-                        if isinstance(testimonies_obj, dict) and witness_id and testimonies_obj.get("witness_id") == witness_id:
-                            testimony = testimonies_obj
+                    testimony = get_testimony(bundle, testimony_id=testimony_id, witness_id=witness_id)
 
                     all_statements = [s.get("id") for s in (testimony or {}).get("statements", [])]
                     seen = {c.get("target_statement_id") for c in trial_state.player_choices if c.get("target_statement_id")}

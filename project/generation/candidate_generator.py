@@ -20,19 +20,39 @@ def generate_candidates(
     use_ollama: bool = False,
     ollama_model: str = "llama3:8b",
 ) -> List[CandidateArgument]:
-    testimony = bundle["testimonies"]
-    evidence = bundle["evidence"]
+    testimony_items = bundle.get("testimony_items", [])
+    evidence_items = bundle.get("evidence_items", [])
     truth = bundle.get("truth", {})
-    valid_statement_ids = {stmt.get("id") for stmt in testimony.get("statements", []) if stmt.get("id")}
+    valid_statement_ids = {
+        stmt.get("id")
+        for testimony in testimony_items
+        for stmt in testimony.get("statements", [])
+        if stmt.get("id")
+    }
 
     # pick the target statement (the one contradicted by this evidence when possible)
     target_stmt = None
-    for stmt in testimony.get("statements", []):
-        if stmt.get("contradicted_by") == evidence.get("id"):
-            target_stmt = stmt
+    target_evidence = None
+    for evidence in evidence_items:
+        for testimony in testimony_items:
+            for stmt in testimony.get("statements", []):
+                if stmt.get("contradicted_by") == evidence.get("id"):
+                    target_stmt = stmt
+                    target_evidence = evidence
+                    break
+            if target_stmt is not None:
+                break
+        if target_stmt is not None:
             break
     if target_stmt is None:
-        target_stmt = testimony.get("statements", [{}])[0]
+        for testimony in testimony_items:
+            if testimony.get("statements"):
+                target_stmt = testimony.get("statements", [{}])[0]
+                break
+    if target_stmt is None:
+        target_stmt = {}
+    if target_evidence is None:
+        target_evidence = evidence_items[0] if evidence_items else {}
 
     # prepare context bits used by templates
     timeline = truth.get("timeline", [])
@@ -116,7 +136,7 @@ def generate_candidates(
                 candidate_id=f"cand_{idx + 1}",
                 strategy=strategy,
                 target_statement_id=target_stmt.get("id", "stmt_1"),
-                evidence_id=evidence.get("id", "unknown_evidence"),
+                evidence_id=target_evidence.get("id", "unknown_evidence"),
                 argument=arg_text,
             )
         )

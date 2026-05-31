@@ -4,6 +4,7 @@ import re
 from typing import Dict, Iterable, Optional
 
 from project.common.types import CandidateArgument, RetrievedChunk, VerifierResult
+from project.retrieval.loader import get_evidence
 
 
 _STOPWORDS = {
@@ -128,14 +129,21 @@ def verify_candidate(
     candidate: CandidateArgument,
     retrieved: Iterable[RetrievedChunk] | None = None,
 ) -> VerifierResult:
-    evidence = bundle["evidence"]
-    testimony = bundle["testimonies"]
+    evidence = get_evidence(bundle, candidate.evidence_id)
+    testimony = None
+    for item in bundle.get("testimony_items", []):
+        for stmt in item.get("statements", []):
+            if stmt.get("id") == candidate.target_statement_id:
+                testimony = item
+                break
+        if testimony is not None:
+            break
 
     known_evidence_id = evidence.get("id")
     if candidate.evidence_id != known_evidence_id:
         return VerifierResult(False, f"Unknown evidence_id '{candidate.evidence_id}'")
 
-    stmts = {stmt.get("id"): stmt for stmt in testimony.get("statements", [])}
+    stmts = {stmt.get("id"): stmt for stmt in (testimony or {}).get("statements", [])}
     if candidate.target_statement_id not in stmts:
         return VerifierResult(False, f"Unknown statement '{candidate.target_statement_id}'")
 
