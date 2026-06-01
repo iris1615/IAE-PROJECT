@@ -1,7 +1,7 @@
 {
-  "$schema": "../../../schemas/testimony.schema.json",
+  "$schema": "../../schemas/testimony.schema.json",
   "id": "testimony_cashier_1",
-  "_case_ref": "../case_001.json",
+  "_case_ref": "./case_001.json",
   "_witness_ref": "./witnesses/witness_cashier.json",
 
   "witness_id": "witness_cashier",

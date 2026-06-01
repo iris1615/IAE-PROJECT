@@ -1,11 +1,11 @@
 {
-  "$schema": "../../schemas/evidence.schema.json",
+  "$schema": "../../../schemas/evidence.schema.json",
   "id": "security_footage",
-  "_case_ref": "./case_001.json",
+  "_case_ref": "../case_001.json",
 
   "name": "Security Camera Footage",
 
-  "description": "The footage shows the defendant entering the coffee shop as calm as ever, ordering a Pastel de Nata and sitting at his usual table. A misterious figure can be seen near the defendant's pocket. When he tries to pay, the cashier looks at the bill, then at him, and then back at the bill with a puzzled expression. The defendant seems confused but insists that the bill is real. The cashier then takes out a pen and marks the bill, which turns out to be counterfeit. The defendant is completely confused and tries to explain himself, but the cashier calls the police. The footage ends with the defendant being escorted out of the coffee shop by the police, still protesting his innocence. A moving shadow can be seen lurking in the background, but it's unclear if it's relevant to the case.",
+  "description": "The footage shows the defendant entering the coffee shop as calm as ever, ordering a Pastel de Nata and sitting at his usual table. A misterious figure can be seen near the defendant's pocket, putting something in it. When he tries to pay, the cashier looks at the bill, then at him, and then back at the bill with a puzzled expression. The defendant seems confused but insists that the bill is real. The cashier then takes out a pen and marks the bill, which turns out to be counterfeit. The defendant is completely confused and tries to explain himself, but the cashier calls the police. The footage ends with the defendant being escorted out of the coffee shop by the police, still protesting his innocence. A moving shadow can be seen lurking in the background, but it's unclear if it's relevant to the case.",
 
   "type": "RECORDING",
 
@@ -15,7 +15,7 @@
   ],
 
   "can_contradict": [
-    "stmt_3"
+    "stmt_2"
   ],
 
   "court_record_visible": true
