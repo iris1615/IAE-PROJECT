@@ -8,8 +8,8 @@
 
   "canonical_truth_id": "truth_case_001",
   "_truth_ref": "./truth_case_001.json",
-  "_evidence_ref": "./evidence.json",
-  "_testimonies_ref": "./testimonies.json",
+  "_evidence_ref": "./evidences/",
+  "_testimonies_ref": "./testimonies/",
   "_witnesses_ref": "./witnesses/",
 
   "phases": [
@@ -23,7 +23,7 @@
       "id": "investigation_1",
       "type": "INVESTIGATION",
       "locations": ["coffee_shop"],
-      "evidence_unlocks": ["counterfeit_bill"]
+      "evidence_unlocks": ["counterfeit_bill", "security_footage"]
     },
 
     {
@@ -37,7 +37,16 @@
       "id": "cross_exam_1",
       "type": "CROSS_EXAMINATION",
       "witness_id": "witness_cashier",
-      "testimony_id": "testimony_cashier_1"
+      "testimony_id": "testimony_cashier_1",
+
+      "contradictions": [
+        {
+          "statement_id": "stmt_3",
+          "correct_evidence": "security_footage",
+          "success": { "next_phase": "argument_1", "penalty": 0 },
+          "failure": { "penalty": 1, "judge_response": "generic_penalty" }
+        }
+      ]
     },
 
     {
@@ -52,6 +61,40 @@
       "judge_id": "judge_judy"
     },
 
+    {
+      "id": "testimony_2",
+      "type": "TESTIMONY",
+      "witness_id": "witness_person_in_line",
+      "testimony_id": "testimony_person_in_line_1"
+    },
+
+    {
+      "id": "cross_exam_2",
+      "type": "CROSS_EXAMINATION",
+      "witness_id": "witness_person_in_line",
+      "testimony_id": "testimony_person_in_line_1",
+
+      "contradictions": [
+        {
+          "statement_id": "stmt_5",
+          "correct_evidence": "security_footage",
+          "success": { "next_phase": "argument_2", "penalty": 0 },
+          "failure": { "penalty": 1, "judge_response": "generic_penalty" }
+        }
+      ]
+    },
+
+    {
+      "id": "argument_2",
+      "type": "ARGUMENTATION",
+      "note": "Defense attorney presents argument based on person_in_line cross-examination."
+    },
+
+    {
+      "id": "judge_reaction_2",
+      "type": "JUDGE_REACTION",
+      "judge_id": "judge_judy"
+    },
 
     {
       "id": "final_defense",
@@ -63,7 +106,7 @@
       "id": "verdict",
       "type": "VERDICT",
       "conditions": {
-        "required_contradictions": ["stmt_3"]
+        "required_contradictions": ["stmt_5"]
       }
     }
   ]
