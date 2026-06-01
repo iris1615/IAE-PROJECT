@@ -5,29 +5,46 @@
 
   "timeline": [
     {
-      "time": "21:05",
-      "event": "Professor entered office"
+      "time": "09:30",
+      "event": "Defendant enters coffee shop and orders a Pastel de Nata."
     },
     {
-      "time": "21:17",
-      "event": "Power outage occurred"
+      "time": "09:32",
+      "event": "Defendant is seen having a casual conversation with the cashier, who seems to recognize him as a regular customer."
     },
     {
-      "time": "21:20",
-      "event": "Victim was killed"
+      "time": "09:40",
+      "event": "Defendant is having his meal, a strange figure is seen lurking near his pocket."
+    },
+    {
+      "time": "09:45",
+      "event": "Defendant tries to pay with a bill, the cashier looks at it and then at the defendant with a puzzled expression."
+    },
+    {
+      "time": "09:46",
+      "event": "Cashier takes out a pen and marks the bill, which turns out to be counterfeit."
+    },
+    {
+      "time": "09:47",
+      "event": "Defendant is confused and tries to explain himself, but the cashier calls the police."
+    },
+    {
+      "time": "09:50",
+      "event": "Defendant is escorted out of the coffee shop by the police, still protesting his innocence. A moving shadow can be seen exiting the scene, lurking in the background."
     }
+
   ],
 
   "facts": [
     {
       "id": "fact_001",
-      "truth": "The witness never entered her office."
+      "truth": "The defendant is innocent and was framed by the strange figure who is actually the person in line witness."
     },
     {
       "id": "fact_002",
-      "truth": "The security photo timestamp is manipulated."
+      "truth": "The bill was indeed counterfeit, but the defendant had no knowledge of it and was set up by the person in line witness, who is the real culprit."
     }
   ],
 
-  "culprit": "assistant_miguel"
+  "culprit": "person_in_line"
 }

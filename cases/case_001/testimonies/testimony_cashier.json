@@ -1,0 +1,46 @@
+{
+  "$schema": "../../../schemas/testimony.schema.json",
+  "id": "testimony_cashier_1",
+  "_case_ref": "./case_001.json",
+  "_witness_ref": "./witnesses/witness_001.json",
+
+  "witness_id": "witness_cashier",
+
+  "topic": "The day of the incident",
+
+  "statements": [
+    {
+      "id": "stmt_1",
+
+      "text": "The defendant is a regular customer here, he comes in every morning to buy a Pastel de Nata and a coffee.",
+
+      "emotion": "calm",
+
+      "can_press": true,
+
+      "press_response": "He's always been a nice guy, never caused any trouble."
+    },
+
+    {
+      "id": "stmt_2",
+
+      "text": "When he tried to pay with that bill, I immediately knew something was wrong. It looked like Monopoly money.",
+
+      "emotion": "confused",
+
+      "can_press": true,
+
+      "press_response": "I have seen a lot of counterfeit bills in my life, and that one was definitely fake."
+    },
+
+    {
+      "id": "stmt_3",
+
+      "text": "But what also caught my attention was that strange figure I saw near the defendant's pocket. I couldn't make out who it was, but it seemed like they were trying to put something in his pocket.",
+
+      "emotion": "nervous",
+
+      "truthfulness": true
+    }
+  ]
+}

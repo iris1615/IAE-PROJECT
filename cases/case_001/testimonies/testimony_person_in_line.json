@@ -1,0 +1,49 @@
+{
+  "$schema": "../../../schemas/testimony.schema.json",
+  "id": "testimony_person_in_line_1",
+  "_case_ref": "./case_001.json",
+  "_witness_ref": "./witnesses/witness_001.json",
+
+  "witness_id": "witness_person_in_line",
+
+  "topic": "The day of the incident",
+
+  "statements": [
+    {
+      "id": "stmt_1",
+
+      "text": "It was my first time in this coffee shop, I never saw the defendant before. I was just in line behind him, waiting to order my coffee when I saw him trying to pay with that bill.",
+
+      "emotion": "calm",
+
+      "can_press": true,
+
+      "press_response": "I didn't know what to think at first, I thought maybe he was joking or something."
+    },
+
+    {
+      "id": "stmt_2",
+
+      "text": "I only was near the defendant's pockets for a moment, i was tying my shoes",
+
+      "emotion": "nervous",
+
+      "can_press": true,
+      "truthfulness": false,
+      "contradicted_by": "security_footage",
+
+      "press_response": "I don't remember seeing anyone near his pockets, I was just focused on tying my shoes."
+    },
+
+    {
+      "id": "stmt_3",
+
+      "text": "I went away after that, I didn't want to get involved. I didn't even know the defendant was being arrested until I heard the commotion outside.",
+
+      "emotion": "nervous",
+
+      "truthfulness": true
+
+    }
+  ]
+}
