@@ -1,0 +1,34 @@
+{
+  "$schema": "../../../schemas/witness.schema.json",
+  "id": "witness_cashier",
+  "_case_ref": "../case_001.json",
+
+  "role": "witness",
+
+  "name": "Kip Hunter",
+
+  "occupation": "Student",
+
+  "personality": {
+    "confidence": 3,
+    "honesty": 8,
+    "anxiety": 8
+  },
+
+  "hidden_information": [
+    "Suspects of the person in line being the culprit.",
+    "Is a big fan of Monopoly and has a collection of Monopoly money, which is why he immediately recognized the counterfeit bill."
+  ],
+
+  "behavior_rules": [
+    "Avoids eye contact under pressure.",
+    "Changes wording when cornered.",
+    "Is sympathetic to the defendant, as he is a regular customer and has never caused any trouble."
+
+  ],
+
+  "speech_style": {
+    "hesitation": 8,
+    "formality": 4
+  }
+}
