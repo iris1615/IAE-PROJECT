@@ -14,8 +14,26 @@ def load_case_bundle(repo_root: Path, case_id: str) -> Dict:
     case_dir = repo_root / "cases" / case_id
     case_data = _load_json(case_dir / f"{case_id}.json")
     evidence_data = _load_json(case_dir / "evidence.json")
-    testimonies_data = _load_json(case_dir / "testimonies.json")
     truth_data = _load_json(case_dir / f"truth_{case_id}.json")
+
+    # Load testimonies from folder (one file per witness), keyed by testimony id.
+    # Falls back to the legacy single-file testimonies.json if the folder doesn't exist.
+    testimonies_data: Dict[str, Dict] = {}
+    testimonies_dir = case_dir / "testimonies"
+    if testimonies_dir.exists() and testimonies_dir.is_dir():
+        for testimony_file in sorted(testimonies_dir.glob("*.json")):
+            testimony = _load_json(testimony_file)
+            testimony_id = testimony.get("id")
+            if testimony_id:
+                testimonies_data[testimony_id] = testimony
+    else:
+        # Legacy fallback: single testimonies.json keyed by its own id
+        legacy_path = case_dir / "testimonies.json"
+        if legacy_path.exists():
+            legacy = _load_json(legacy_path)
+            testimony_id = legacy.get("id")
+            if testimony_id:
+                testimonies_data[testimony_id] = legacy
 
     witnesses_data: Dict[str, Dict] = {}
     witnesses_dir = case_dir / "witnesses"
@@ -33,6 +51,8 @@ def load_case_bundle(repo_root: Path, case_id: str) -> Dict:
     return {
         "case": case_data,
         "evidence": evidence_data,
+        # testimonies is now a dict keyed by testimony id, e.g.:
+        # { "testimony_cashier_1": {...}, "testimony_person_in_line_1": {...} }
         "testimonies": testimonies_data,
         "truth": truth_data,
         "witnesses": witnesses_data,
@@ -45,32 +65,37 @@ def build_documents(bundle: Dict) -> List[EvidenceDocument]:
     docs: List[EvidenceDocument] = []
 
     evidence = bundle["evidence"]
-    docs.append(
-        EvidenceDocument(
-            id=evidence["id"],
-            kind="evidence",
-            content=f"{evidence['name']}: {evidence['description']}",
-            metadata={
-                "can_contradict": evidence.get("can_contradict", []),
-                "reveals": evidence.get("reveals", []),
-            },
-        )
-    )
-
-    testimony = bundle["testimonies"]
-    for stmt in testimony.get("statements", []):
+    for evidence in evidence.values():
         docs.append(
             EvidenceDocument(
-                id=stmt["id"],
-                kind="testimony",
-                content=stmt["text"],
+                id=evidence["id"],
+                kind="evidence",
+                content=f"{evidence['name']}: {evidence['description']}",
                 metadata={
-                    "emotion": stmt.get("emotion", "calm"),
-                    "contradicted_by": stmt.get("contradicted_by"),
-                    "truthfulness": stmt.get("truthfulness"),
+                    "can_contradict": evidence.get("can_contradict", []),
+                    "reveals": evidence.get("reveals", []),
                 },
             )
         )
+
+    
+    testimonies = bundle["testimonies"]
+    for testimony in testimonies.values():
+        for stmt in testimony.get("statements", []):
+            docs.append(
+                EvidenceDocument(
+                    id=stmt["id"],
+                    kind="testimony",
+                    content=stmt["text"],
+                    metadata={
+                        "testimony_id": testimony.get("id"),
+                        "witness_id": testimony.get("witness_id"),
+                        "emotion": stmt.get("emotion", "calm"),
+                        "contradicted_by": stmt.get("contradicted_by"),
+                        "truthfulness": stmt.get("truthfulness"),
+                    },
+                )
+            )
 
     for fact in bundle["truth"].get("facts", []):
         docs.append(
