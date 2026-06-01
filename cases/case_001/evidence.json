@@ -1,7 +1,7 @@
 {
-  "$schema": "../../../schemas/evidence.schema.json",
+  "$schema": "../../schemas/evidence.schema.json",
   "id": "counterfeit_bill",
-  "_case_ref": "../case_001.json",
+  "_case_ref": "./case_001.json",
 
   "name": "Counterfeit Bill",
 
