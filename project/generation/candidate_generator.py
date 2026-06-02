@@ -35,6 +35,17 @@ def _pick_evidence(bundle: Dict, target_stmt: Dict) -> Dict:
     return items[0]
 
 
+def _testimony_items(bundle: Dict) -> List[Dict]:
+    testimonies = bundle.get("testimonies", {})
+    if isinstance(testimonies, list):
+        return [item for item in testimonies if isinstance(item, dict)]
+    if isinstance(testimonies, dict):
+        if testimonies.get("statements"):
+            return [testimonies]
+        return [item for item in testimonies.values() if isinstance(item, dict)]
+    return []
+
+
 def generate_candidates(
     bundle: Dict,
     adaptation: AdaptationConfig,
@@ -43,22 +54,32 @@ def generate_candidates(
     use_ollama: bool = False,
     ollama_model: str = "llama3:8b",
 ) -> List[CandidateArgument]:
-    testimony = bundle["testimonies"]
+    testimonies = _testimony_items(bundle)
     truth = bundle.get("truth", {})
-    valid_statement_ids = {stmt.get("id") for stmt in testimony.get("statements", []) if stmt.get("id")}
+    selected_testimony = testimonies[0] if testimonies else {"statements": []}
+    selected_statements = selected_testimony.get("statements", [])
+    valid_statement_ids = {stmt.get("id") for stmt in selected_statements if stmt.get("id")}
 
-    evidence = _pick_evidence(bundle, testimony.get("statements", [{}])[0])
-
-    # pick the target statement (the one contradicted by this evidence when possible)
+    # Pick a testimony that has a statement contradicted by an available evidence item.
     target_stmt = None
-    for stmt in testimony.get("statements", []):
-        if stmt.get("contradicted_by") == evidence.get("id"):
-            target_stmt = stmt
+    evidence = {}
+    for testimony in testimonies:
+        for stmt in testimony.get("statements", []):
+            contradicted_by = stmt.get("contradicted_by")
+            if contradicted_by:
+                evidence = next((item for item in _evidence_items(bundle) if item.get("id") == contradicted_by), {})
+                if evidence:
+                    target_stmt = stmt
+                    selected_testimony = testimony
+                    selected_statements = testimony.get("statements", [])
+                    valid_statement_ids = {s.get("id") for s in selected_statements if s.get("id")}
+                    break
+        if target_stmt is not None:
             break
-    if target_stmt is None:
-        target_stmt = testimony.get("statements", [{}])[0]
 
-    evidence = _pick_evidence(bundle, target_stmt)
+    if target_stmt is None:
+        target_stmt = selected_statements[0] if selected_statements else {"id": "stmt_1", "text": ""}
+        evidence = _pick_evidence(bundle, target_stmt)
 
     # prepare context bits used by templates
     timeline = truth.get("timeline", [])
