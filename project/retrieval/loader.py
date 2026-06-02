@@ -13,7 +13,16 @@ def _load_json(path: Path) -> Dict:
 def load_case_bundle(repo_root: Path, case_id: str) -> Dict:
     case_dir = repo_root / "cases" / case_id
     case_data = _load_json(case_dir / f"{case_id}.json")
-    evidence_data = _load_json(case_dir / "evidence.json")
+
+    evidence_ref = case_data.get("_evidence_ref", "./evidence.json")
+    evidence_path = (case_dir / evidence_ref).resolve()
+    if evidence_path.is_dir():
+        evidence_data = []
+        for evidence_file in sorted(evidence_path.glob("*.json")):
+            evidence_data.append(_load_json(evidence_file))
+    else:
+        evidence_data = _load_json(evidence_path if evidence_path.exists() else case_dir / "evidence.json")
+
     truth_data = _load_json(case_dir / f"truth_{case_id}.json")
 
     # Load testimonies from folder (one file per witness), keyed by testimony id.
@@ -64,8 +73,13 @@ def load_case_bundle(repo_root: Path, case_id: str) -> Dict:
 def build_documents(bundle: Dict) -> List[EvidenceDocument]:
     docs: List[EvidenceDocument] = []
 
-    evidence = bundle["evidence"]
-    for evidence in evidence.values():
+    evidence_data = bundle["evidence"]
+    if isinstance(evidence_data, list):
+        evidence_items = evidence_data
+    else:
+        evidence_items = [evidence_data]
+
+    for evidence in evidence_items:
         docs.append(
             EvidenceDocument(
                 id=evidence["id"],
