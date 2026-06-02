@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import argparse
+import json
 import time
+import re
 from pathlib import Path
 from project.adaptation.config import AdaptationConfig
 from project.common.types import TrialContext
@@ -15,6 +17,8 @@ from project.ui.cli_demo import choose_candidate, print_player_choices, print_re
 from project.verifier.symbolic_verifier import verify_candidate
 from project.retrieval.chroma_indexer import ensure_chroma_index, build_chroma_retriever
 from project.trial.state import TrialState
+
+from project.common.log_events import log_argument_options, log_dialogue, log_evidence
 
 
 def run_pipeline(
@@ -58,11 +62,27 @@ def run_pipeline(
 
         if phase_type == "INTRO":
             print(bundle["case"].get("summary", ""))
+
+            log_dialogue(
+                repo_root / "project" / "logs" / "runtime.jsonl",
+                case_id=case_id,
+                speaker="Narrator",
+                text=bundle["case"].get("summary", ""),
+                source="cli",
+            )
+
             next_phase_id = trial_state.next_phase_id(current_phase_id)
 
         elif phase_type == "INVESTIGATION":
             locations = phase.get("locations", [])
             print("Available locations:", ", ".join(locations))
+            log_evidence(
+                repo_root / "project" / "logs" / "runtime.jsonl",
+                case_id=case_id,
+                title="Available locations",
+                description=f"{', '.join(locations)}",
+                source="cli",
+            )
             next_phase_id = trial_state.next_phase_id(current_phase_id)
 
         elif phase_type == "TESTIMONY":
@@ -71,6 +91,15 @@ def run_pipeline(
             print("Testimony:")
             for stmt in testimony.get("statements", []):
                 print(f"- {stmt.get('id')}: {stmt.get('text')}")
+
+                log_dialogue(
+                    repo_root / "project" / "logs" / "runtime.jsonl",
+                    case_id=case_id,
+                    speaker="Witness",
+                    text=stmt.get('text'),
+                    source="cli"
+                )
+
             next_phase_id = trial_state.next_phase_id(current_phase_id)
 
         elif phase_type == "CROSS_EXAMINATION":
@@ -98,11 +127,23 @@ def run_pipeline(
             statements = (testimony or {}).get("statements", [])
             if not statements:
                 print("No statements available for cross-examination.")
+                log_argument_options(
+                    repo_root / "project" / "logs" / "runtime.jsonl",
+                    case_id=case_id,
+                    options="No statements available for cross-examination",
+                    source="cli",
+                )
                 next_phase_id = trial_state.next_phase_id(current_phase_id)
             else:
                 print("Statements available to challenge:")
                 for idx, stmt in enumerate(statements, start=1):
                     print(f"{idx}. {stmt.get('id')}: {stmt.get('text')}")
+                log_argument_options(
+                    repo_root / "project" / "logs" / "runtime.jsonl",
+                    case_id=case_id,
+                    options=statements,
+                    source="cli",
+                )
 
                 # choose statement by number
                 proceed_to_final = False
@@ -162,6 +203,12 @@ def run_pipeline(
 
                     verified = [(cand, verify_candidate(bundle, cand, retrieved=retrieved)) for cand in candidates]
                     player_choices = print_player_choices(verified)
+                    log_argument_options(
+                        repo_root / "project" / "logs" / "runtime.jsonl",
+                        case_id=case_id,
+                        options=[{"index": index, "text": re.sub(r'^\s*\[.*?\]\s*', '', candidate.argument), "intent": candidate.strategy } for index, candidate in enumerate(player_choices, start=1)],
+                        source="cli",
+                    )
                     selected_candidate = choose_candidate(player_choices)
 
                     if selected_candidate is not None:
@@ -170,6 +217,13 @@ def run_pipeline(
                             # persist the player's choice in trial state
                             trial_state.record_choice(selected_candidate, selected_verdict)
                             print(f"\nSelected candidate: {selected_candidate.candidate_id} [{selected_candidate.strategy}]")
+                            log_dialogue(
+                                repo_root / "project" / "logs" / "runtime.jsonl",
+                                case_id=case_id,
+                                speaker="Player",
+                                text=selected_candidate.argument,
+                                source="cli_choice",
+                            )
                             reactions = build_npc_reactions(
                                 bundle=bundle,
                                 candidate=selected_candidate,
@@ -180,6 +234,13 @@ def run_pipeline(
                             )
                             for r in reactions:
                                 print(f"[REACTION] {r.npc_name} ({r.role}): {r.text}")
+                                log_dialogue(
+                                    repo_root / "project" / "logs" / "runtime.jsonl",
+                                    case_id=case_id,
+                                    speaker=r.role,
+                                    text=r.text,
+                                    source="cli_reaction",
+                                )
 
                             # move to argumentation so player can present/polish their selected argument
                             # find argumentation phase id if present
@@ -199,6 +260,13 @@ def run_pipeline(
             print("Judge reactions available:")
             for k, arr in templates.items():
                 print(f"- {k}: {arr}")
+                log_dialogue(
+                    repo_root / "project" / "logs" / "runtime.jsonl",
+                    case_id=case_id,
+                    speaker="Judge",
+                    text=f"{k}': {arr}",
+                    source="cli_judge_reactions",
+                )
             next_phase_id = trial_state.next_phase_id(current_phase_id)
 
         elif phase_type == "ARGUMENTATION":
@@ -232,6 +300,12 @@ def run_pipeline(
 
                 verified = [(cand, verify_candidate(bundle, cand, retrieved=retrieved)) for cand in candidates]
                 player_choices = print_player_choices(verified)
+                log_argument_options(
+                    repo_root / "project" / "logs" / "runtime.jsonl",
+                    case_id=case_id,
+                    options=[{"index": index, "text": re.sub(r'^\s*\[.*?\]\s*', '', candidate.argument), "intent": candidate.strategy } for index, candidate in enumerate(player_choices, start=1)],
+                    source="cli",
+                )
                 selected_candidate = choose_candidate(player_choices)
                 if selected_candidate is not None:
                     selected_verdict = next((verdict for cand, verdict in verified if cand.candidate_id == selected_candidate.candidate_id), None)
@@ -347,6 +421,12 @@ def run_pipeline(
 
             while True:
                 print(f"\nOptions:\n1) Make a follow-up argument\n{option2_label}")
+                log_argument_options(
+                    repo_root / "project" / "logs" / "runtime.jsonl",
+                    case_id=case_id,
+                    options=[{"index": 1, "text": "1) Make a follow-up argument"}, {"index": 2, "text": option2_label}],
+                    source="cli_followup_option",
+                )
                 choice = input("Choose 1 or 2: ").strip()
                 if choice == "1":
                     # follow-up should run the same candidate-generation pipeline
@@ -381,6 +461,12 @@ def run_pipeline(
 
                     verified = [(cand, verify_candidate(bundle, cand, retrieved=retrieved)) for cand in candidates]
                     player_choices = print_player_choices(verified)
+                    log_argument_options(
+                        repo_root / "project" / "logs" / "runtime.jsonl",
+                        case_id=case_id,
+                        options=[{"index": index, "text": re.sub(r'^\s*\[.*?\]\s*', '', candidate.argument), "intent": candidate.strategy } for index, candidate in enumerate(player_choices, start=1)],
+                        source="cli",
+                    )
                     selected_candidate = choose_candidate(player_choices)
 
                     if selected_candidate is not None:
@@ -398,6 +484,13 @@ def run_pipeline(
                             )
                             for r in reactions:
                                 print(f"[REACTION] {r.npc_name} ({r.role}): {r.text}")
+                                log_dialogue(
+                                    repo_root / "project" / "logs" / "runtime.jsonl",
+                                    case_id=case_id,
+                                    speaker=r.role,
+                                    text=r.text,
+                                    source="cli_reaction",
+                                )
 
                             # set last_choice to the new selection for subsequent argumentation steps
                             last_choice = trial_state.player_choices[-1]
@@ -473,6 +566,13 @@ def run_pipeline(
         elif phase_type == "FINAL_DEFENSE":
             # Compile prior choices and let the defense present a closing argument
             print("\nFinal Defense: craft your closing argument based on the case and choices made.")
+            log_dialogue(
+                repo_root / "project" / "logs" / "runtime.jsonl",
+                case_id=case_id,
+                speaker="Judge",
+                text="Final Defense, craft your closing argument based on the case and choices made.",
+                source="cli",
+            )
             prior_lines = []
             for i, c in enumerate(trial_state.player_choices, start=1):
                 arg = c.get("presented_argument") or c.get("argument")
@@ -501,6 +601,12 @@ def run_pipeline(
 
             verified = [(cand, verify_candidate(bundle, cand, retrieved=retrieved)) for cand in candidates]
             player_choices = print_player_choices(verified)
+            log_argument_options(
+                repo_root / "project" / "logs" / "runtime.jsonl",
+                case_id=case_id,
+                options=[{"index": index, "text": re.sub(r'^\s*\[.*?\]\s*', '', candidate.argument), "intent": candidate.strategy } for index, candidate in enumerate(player_choices, start=1)],
+                source="cli",
+            )
             selected_candidate = choose_candidate(player_choices)
 
             if selected_candidate is not None:
@@ -537,6 +643,13 @@ def run_pipeline(
                             print("[debug] polishing final defense failed:", e)
 
                     print("\nFinal defense presented:")
+                    log_dialogue(
+                        repo_root / "project" / "logs" / "runtime.jsonl",
+                        case_id=case_id,
+                        speaker="Player",
+                        text=final_text,
+                        source="cli",
+                    )
                     print(final_text)
 
             next_phase_id = trial_state.next_phase_id(current_phase_id)
@@ -561,7 +674,21 @@ def run_pipeline(
             judge = bundle.get("judge", {})
             judge_name = judge.get("name", "Judge")
             print(f"\nJudge {judge_name}: THE COURT FINDS THE DEFENDANT {decision}.")
+            log_dialogue(
+                repo_root / "project" / "logs" / "runtime.jsonl",
+                case_id=case_id,
+                speaker="Judge",
+                text=f"THE COURT FINDS THE DEFENDANT {decision}.",
+                source="cli_verdict",
+            )
             print(f"Reason: {reason}")
+            log_dialogue(
+                repo_root / "project" / "logs" / "runtime.jsonl",
+                case_id=case_id,
+                speaker="Judge",
+                text=f"Reason: {reason}",
+                source="cli_verdict_reason",
+            )
 
             # persist verdict into trial_state and logs for replay
             try:

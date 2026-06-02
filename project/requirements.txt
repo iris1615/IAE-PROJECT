@@ -1,5 +1,7 @@
 # Optional dependencies for retrieval and hosted model calls
 chromadb>=0.5.5
+sentence-transformers>=3.0.0
 openai>=1.35.0
 watchdog>=2.1.0
 streamlit>=1.57.0
+streamlit-autorefresh>=1.0.1
