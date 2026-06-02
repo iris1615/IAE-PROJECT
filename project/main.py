@@ -63,6 +63,56 @@ def _print_case_snapshot(bundle: dict) -> None:
     print(f"- truth_timeline_events: {len(truth.get('timeline', []))}")
 
 
+def _iter_testimonies(bundle: dict) -> list[dict]:
+    testimonies_obj = bundle.get("testimonies", {})
+    if isinstance(testimonies_obj, list):
+        return [item for item in testimonies_obj if isinstance(item, dict)]
+    if isinstance(testimonies_obj, dict):
+        if testimonies_obj.get("statements"):
+            return [testimonies_obj]
+        return [item for item in testimonies_obj.values() if isinstance(item, dict)]
+    return []
+
+
+def _resolve_testimony(bundle: dict, testimony_id: str | None = None, witness_id: str | None = None) -> dict:
+    testimonies = _iter_testimonies(bundle)
+    if testimony_id:
+        for testimony in testimonies:
+            if testimony.get("id") == testimony_id:
+                return testimony
+    if witness_id:
+        for testimony in testimonies:
+            if testimony.get("witness_id") == witness_id:
+                return testimony
+    return testimonies[0] if testimonies else {}
+
+
+def _print_case_snapshot(bundle: dict) -> None:
+    case = bundle.get("case", {})
+    evidence_items = bundle.get("evidence", {})
+    testimony_items = _iter_testimonies(bundle)
+    witness_items = bundle.get("witnesses", {})
+    truth = bundle.get("truth", {})
+
+    if isinstance(evidence_items, dict):
+        evidence_ids = [item.get("id") for item in evidence_items.values() if isinstance(item, dict) and item.get("id")]
+    else:
+        evidence_ids = [item.get("id") for item in evidence_items if isinstance(item, dict) and item.get("id")]
+
+    testimony_ids = [item.get("id") for item in testimony_items if item.get("id")]
+    witness_ids = [item.get("id") for item in witness_items.values() if isinstance(item, dict) and item.get("id")]
+
+    print("Loaded case snapshot:")
+    print(f"- case_id: {case.get('id')}")
+    print(f"- title: {case.get('title')}")
+    print(f"- difficulty: {case.get('difficulty')}")
+    print(f"- evidence_count: {len(evidence_ids)} -> {', '.join(evidence_ids) if evidence_ids else '(none)'}")
+    print(f"- testimony_count: {len(testimony_ids)} -> {', '.join(testimony_ids) if testimony_ids else '(none)'}")
+    print(f"- witness_count: {len(witness_ids)} -> {', '.join(witness_ids) if witness_ids else '(none)'}")
+    print(f"- truth_facts: {len(truth.get('facts', []))}")
+    print(f"- truth_timeline_events: {len(truth.get('timeline', []))}")
+
+
 def run_pipeline(
     repo_root: Path,
     case_id: str,

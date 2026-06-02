@@ -82,6 +82,19 @@ def generate_candidates(
         target_stmt = selected_statements[0] if selected_statements else {"id": "stmt_1", "text": ""}
         evidence = _pick_evidence(bundle, target_stmt)
 
+    # prepare context bits used by templates
+    timeline = truth.get("timeline", [])
+    timeline_text = ", ".join([f"{e.get('time','?')}: {e.get('event','')}" for e in timeline[:3]])
+    fact_texts = [f.get("truth", "") for f in truth.get("facts", [])]
+
+    # list of different argument-builder functions (each returns a string)
+    templates = [
+        _timeline_pressure_argument,
+        _credibility_attack_argument,
+        _forensic_framing_argument,
+        _logical_chain_argument,
+        _judge_focused_argument,
+    ]
 
     strategies = ["timeline", "credibility", "forensic", "logic", "court-record"]
     candidates: List[CandidateArgument] = []
