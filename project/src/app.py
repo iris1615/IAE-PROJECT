@@ -106,6 +106,13 @@ with st.container(border=True):
 
     candidates = backend_options
 
+    backend_options_events = read_argument_options_events(_runtime_log_path(), case_id=st.session_state.case_id)
+    backend_options = (backend_options_events[-1].get("options") if backend_options_events else None) or []
+
+    candidates = backend_options if backend_options else mock_candidates
+    if candidates is backend_options:
+        st.caption("Options loaded from backend")
+
     # Display layout options using columns
     if candidates:
         cols = st.columns(len(candidates))
