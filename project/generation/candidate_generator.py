@@ -12,6 +12,29 @@ except Exception:
     ollama_generate_json = None
 
 
+def _evidence_items(bundle: Dict) -> List[Dict]:
+    evidence = bundle.get("evidence", {})
+    if isinstance(evidence, list):
+        return [item for item in evidence if isinstance(item, dict)]
+    if isinstance(evidence, dict) and evidence.get("id"):
+        return [evidence]
+    return []
+
+
+def _pick_evidence(bundle: Dict, target_stmt: Dict) -> Dict:
+    items = _evidence_items(bundle)
+    if not items:
+        return {}
+
+    expected_evidence_id = target_stmt.get("contradicted_by")
+    if expected_evidence_id:
+        for item in items:
+            if item.get("id") == expected_evidence_id:
+                return item
+
+    return items[0]
+
+
 def generate_candidates(
     bundle: Dict,
     adaptation: AdaptationConfig,
@@ -21,9 +44,10 @@ def generate_candidates(
     ollama_model: str = "llama3:8b",
 ) -> List[CandidateArgument]:
     testimony = bundle["testimonies"]
-    evidence = bundle["evidence"]
     truth = bundle.get("truth", {})
     valid_statement_ids = {stmt.get("id") for stmt in testimony.get("statements", []) if stmt.get("id")}
+
+    evidence = _pick_evidence(bundle, testimony.get("statements", [{}])[0])
 
     # pick the target statement (the one contradicted by this evidence when possible)
     target_stmt = None
@@ -33,6 +57,8 @@ def generate_candidates(
             break
     if target_stmt is None:
         target_stmt = testimony.get("statements", [{}])[0]
+
+    evidence = _pick_evidence(bundle, target_stmt)
 
     # prepare context bits used by templates
     timeline = truth.get("timeline", [])

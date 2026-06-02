@@ -123,16 +123,54 @@ def _find_retrieved_chunk(retrieved: Iterable[RetrievedChunk], chunk_id: str) ->
     return None
 
 
+def _resolve_testimony(bundle: Dict, statement_id: str) -> Optional[Dict]:
+    testimonies = bundle.get("testimonies", {})
+    if isinstance(testimonies, list):
+        for testimony in testimonies:
+            if not isinstance(testimony, dict):
+                continue
+            for statement in testimony.get("statements", []):
+                if statement.get("id") == statement_id:
+                    return testimony
+        return None
+
+    if isinstance(testimonies, dict):
+        if testimonies.get("statements"):
+            for statement in testimonies.get("statements", []):
+                if statement.get("id") == statement_id:
+                    return testimonies
+
+        for testimony in testimonies.values():
+            if not isinstance(testimony, dict):
+                continue
+            for statement in testimony.get("statements", []):
+                if statement.get("id") == statement_id:
+                    return testimony
+
+    return None
+
+
+def _evidence_items(bundle: Dict) -> list[Dict]:
+    evidence = bundle.get("evidence", {})
+    if isinstance(evidence, list):
+        return [item for item in evidence if isinstance(item, dict)]
+    if isinstance(evidence, dict) and evidence.get("id"):
+        return [evidence]
+    return []
+
+
 def verify_candidate(
     bundle: Dict,
     candidate: CandidateArgument,
     retrieved: Iterable[RetrievedChunk] | None = None,
 ) -> VerifierResult:
-    evidence = bundle["evidence"]
-    testimony = bundle["testimonies"]
+    testimony = _resolve_testimony(bundle, candidate.target_statement_id)
+    if testimony is None:
+        return VerifierResult(False, f"Unknown statement '{candidate.target_statement_id}'")
 
-    known_evidence_id = evidence.get("id")
-    if candidate.evidence_id != known_evidence_id:
+    evidence_items = _evidence_items(bundle)
+    evidence = next((item for item in evidence_items if item.get("id") == candidate.evidence_id), None)
+    if evidence is None:
         return VerifierResult(False, f"Unknown evidence_id '{candidate.evidence_id}'")
 
     stmts = {stmt.get("id"): stmt for stmt in testimony.get("statements", [])}
