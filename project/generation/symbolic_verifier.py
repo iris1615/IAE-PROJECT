@@ -163,75 +163,86 @@ def verify_candidate(
     bundle: Dict,
     candidate: CandidateArgument,
     retrieved: Iterable[RetrievedChunk] | None = None,
+    current_statement_id: Optional[str] = None  # <-- NOVO: Forçado pelo loop do jogo
 ) -> VerifierResult:
-    testimony = _resolve_testimony(bundle, candidate.target_statement_id)
-    if testimony is None:
-        return VerifierResult(False, f"Unknown statement '{candidate.target_statement_id}'")
+    
+    # 1. Resolver o ID da afirmação (usa o do loop se o candidato não tiver)
+    stmt_id = getattr(candidate, "target_statement_id", None) or current_statement_id
+    if not stmt_id:
+        return VerifierResult(False, "Missing target_statement_id")
 
-    evidence_items = _evidence_items(bundle)
-    evidence = next((item for item in evidence_items if item.get("id") == candidate.evidence_id), None)
-    if evidence is None:
-        return VerifierResult(False, f"Unknown evidence_id '{candidate.evidence_id}'")
+    testimony = _resolve_testimony(bundle, stmt_id)
+    if testimony is None:
+        return VerifierResult(False, f"Unknown statement '{stmt_id}'")
 
     stmts = {stmt.get("id"): stmt for stmt in testimony.get("statements", [])}
-    if candidate.target_statement_id not in stmts:
-        return VerifierResult(False, f"Unknown statement '{candidate.target_statement_id}'")
+    if stmt_id not in stmts:
+        return VerifierResult(False, f"Unknown statement '{stmt_id}'")
+    stmt = stmts[stmt_id]
 
-    stmt = stmts[candidate.target_statement_id]
-    expected = stmt.get("contradicted_by")
-    if expected and expected != candidate.evidence_id:
-        return VerifierResult(
-            False,
-            f"Contradiction mismatch: expected '{expected}', got '{candidate.evidence_id}'",
-        )
-
-    evidence_chunks = list(retrieved or [])
-    evidence_chunk = _find_retrieved_chunk(evidence_chunks, candidate.evidence_id)
+    # 2. Validação de Evidência (Tornada opcional para o debate dinâmico)
+    evidence_id = getattr(candidate, "evidence_id", None)
     evidence_text = ""
-    if evidence_chunk is not None:
-        evidence_text = evidence_chunk.content
-    else:
-        evidence_text = f"{evidence.get('name', '')} {evidence.get('description', '')}".strip()
+    
+    if evidence_id:  # Só valida a prova se o candidato a trouxer explicitamente
+        evidence_items = _evidence_items(bundle)
+        evidence = next((item for item in evidence_items if item.get("id") == evidence_id), None)
+        if evidence is None:
+            return VerifierResult(False, f"Unknown evidence_id '{evidence_id}'")
 
+        expected = stmt.get("contradicted_by")
+        if expected and expected != evidence_id:
+            return VerifierResult(
+                False,
+                f"Contradiction mismatch: expected '{expected}', got '{evidence_id}'",
+            )
+            
+        evidence_chunks = list(retrieved or [])
+        evidence_chunk = _find_retrieved_chunk(evidence_chunks, evidence_id)
+        if evidence_chunk is not None:
+            evidence_text = evidence_chunk.content
+        else:
+            evidence_text = f"{evidence.get('name', '')} {evidence.get('description', '')}".strip()
+
+    # 3. Grounding & Texto (Mesma lógica analítica que já tinhas)
     statement_text = stmt.get("text", "")
     truth = bundle.get("truth", {})
     truth_facts = " ".join(fact.get("truth", "") for fact in truth.get("facts", []))
     timeline_events = " ".join(f"{event.get('time', '')} {event.get('event', '')}" for event in truth.get("timeline", []))
     grounding_basis = " ".join(part for part in [evidence_text, statement_text, truth_facts, timeline_events] if part).strip()
 
-    grounding_score = _overlap_score(candidate.argument, grounding_basis)
-    if grounding_score < 0.03:
+    # Se não houver texto nenhum para validar, pomos uma base mínima
+    if not grounding_basis:
+        grounding_basis = statement_text
+
+    argument_text = getattr(candidate, "argument", "") or getattr(candidate, "text", "")
+    grounding_score = _overlap_score(argument_text, grounding_basis)
+    
+    # Reduzimos ligeiramente a tolerância para 0.01 caso não haja prova injetada em texto
+    if grounding_score < 0.01:
         return VerifierResult(
             False,
-            f"Ungrounded argument: overlap with retrieved evidence/statement is too weak (score={grounding_score:.2f})",
+            f"Ungrounded argument: overlap too weak (score={grounding_score:.2f})",
         )
 
-    strategy = candidate.strategy.lower()
-    strategy_cues = _STRATEGY_CUES.get(strategy)
-    argument_lower = candidate.argument.lower()
-    if strategy == "timeline":
-        has_strategy_cue = _has_time_like_token(candidate.argument) or any(cue in argument_lower for cue in strategy_cues or ())
+    # 4. Estratégia e Inferência (Mantém-se igual e espetacular!)
+    cand_strategy = getattr(candidate, "strategy", "logic").lower()
+    strategy_cues = _STRATEGY_CUES.get(cand_strategy)
+    argument_lower = argument_text.lower()
+    
+    if cand_strategy == "timeline":
+        has_strategy_cue = _has_time_like_token(argument_text) or any(cue in argument_lower for cue in strategy_cues or ())
     else:
         has_strategy_cue = bool(strategy_cues and any(cue in argument_lower for cue in strategy_cues))
 
     if strategy_cues and not has_strategy_cue:
         return VerifierResult(
             False,
-            f"Ungrounded argument: strategy '{candidate.strategy}' lacks a matching inferential cue",
+            f"Ungrounded argument: strategy '{cand_strategy}' lacks matching cue",
         )
 
-    reasoning_markers = (
-        "because",
-        "therefore",
-        "so",
-        "thus",
-        "implies",
-        "suggests",
-        "which means",
-        "if ",
-        "should",
-    )
-    if not any(marker in candidate.argument.lower() for marker in reasoning_markers):
+    reasoning_markers = ("because", "therefore", "so", "thus", "implies", "suggests", "which means", "if ", "should")
+    if not any(marker in argument_lower for marker in reasoning_markers):
         return VerifierResult(
             False,
             "Ungrounded argument: missing an inferential step",

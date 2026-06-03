@@ -154,6 +154,7 @@ def generate_candidates(
                 print("[debug] lazy import of Ollama client failed:")
                 traceback.print_exc()
                 print("[debug] Falling back to template candidate generation.")
+        
         if ollama_generate_json is None:
             print("[debug] use_ollama=True but Ollama client is not available (ollama_generate_json is None). Falling back to templates.")
         else:
@@ -166,12 +167,22 @@ def generate_candidates(
                 # support single-object responses as well as lists
                 if isinstance(llm_out, dict):
                     llm_out = [llm_out]
+                
                 if isinstance(llm_out, list):
                     canonical_evidence_id = evidence.get("id", "unknown_evidence")
                     for idx, item in enumerate(llm_out[:k]):
+                        
+                        # 1. Extrair o ID enviado pelo Ollama
                         target_statement_id = item.get("target_statement_id")
+                        
+                        # --- CORREÇÃO: Tratar listas alucinadas pelo LLM onde llm_out ESTÁ definido ---
+                        if isinstance(target_statement_id, list):
+                            target_statement_id = target_statement_id[0] if target_statement_id else "stmt_1"
+                        
+                        # 2. Agora a verificação com o 'set' já não vai crashar
                         if target_statement_id not in valid_statement_ids:
                             target_statement_id = target_stmt.get("id", "stmt_1")
+                        
                         candidates.append(
                             CandidateArgument(
                                 candidate_id=f"cand_ollama_{idx+1}",
@@ -185,37 +196,6 @@ def generate_candidates(
                         )
                     return candidates
             # on failure, fall back to local templates
-
-    for idx in range(k):
-        tpl = templates[idx % len(templates)]
-        strategy = strategies[idx % len(strategies)]
-        # Call template functions positionally to avoid signature mismatch
-        arg_text = tpl(
-            target_stmt.get("text", ""),
-            evidence.get("name", evidence.get("id", "")),
-            evidence.get("description", ""),
-            timeline_text,
-            fact_texts,
-            strategy,
-        )
-
-        # Score the evidence for this target statement and decide whether to present it
-        presentation_score = _score_evidence(evidence, target_stmt, timeline_text, fact_texts)
-        present_evidence = presentation_score >= present_threshold
-
-        candidates.append(
-            CandidateArgument(
-                candidate_id=f"cand_{idx + 1}",
-                strategy=strategy,
-                target_statement_id=target_stmt.get("id", "stmt_1"),
-                evidence_id=evidence.get("id", "unknown_evidence"),
-                argument=arg_text,
-                present_evidence=present_evidence,
-                presentation_score=presentation_score,
-            )
-        )
-
-    return candidates
     
 '''
 Helper functions to generate differente arguments styles
