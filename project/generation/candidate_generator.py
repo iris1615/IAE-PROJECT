@@ -46,6 +46,44 @@ def _testimony_items(bundle: Dict) -> List[Dict]:
     return []
 
 
+def _score_evidence(evidence: Dict, target_stmt: Dict, timeline_text: str, fact_texts: List[str]) -> float:
+    """Simple heuristic to score how useful an evidence item is for contradicting or supporting a target statement.
+
+    Returns a score in [0.0, 1.0]. Higher means more useful to present.
+    """
+    if not evidence:
+        return 0.0
+
+    # If the statement explicitly lists this evidence as the contradicting item, it's maximally useful.
+    contradicted_by = target_stmt.get("contradicted_by") if target_stmt else None
+    if contradicted_by and contradicted_by == evidence.get("id"):
+        return 1.0
+
+    score = 0.0
+
+    # Evidence that "reveals" concrete facts is more useful
+    if evidence.get("reveals"):
+        score += 0.5
+
+    desc = (evidence.get("description") or "").lower()
+    name = (evidence.get("name") or "").lower()
+
+    # Objective artifacts (photos, footage, marked items, biometrics) are stronger anchors
+    if any(k in desc for k in ("photo", "video", "footage", "security", "surveillance", "marked", "fingerprint", "dna", "receipt")):
+        score += 0.4
+
+    # If the evidence name or description echoes the statement text or timeline, boost slightly
+    stmt_text = (target_stmt.get("text") if target_stmt else "") or ""
+    if name and name in stmt_text.lower():
+        score += 0.3
+    for w in timeline_text.lower().split():
+        if w and w in desc:
+            score += 0.05
+            break
+
+    return min(score, 1.0)
+
+
 def generate_candidates(
     bundle: Dict,
     adaptation: AdaptationConfig,
@@ -53,6 +91,7 @@ def generate_candidates(
     prompt: Optional[str] = None,
     use_ollama: bool = False,
     ollama_model: str = "llama3:8b",
+    present_threshold: float = 0.5,
 ) -> List[CandidateArgument]:
     testimonies = _testimony_items(bundle)
     truth = bundle.get("truth", {})
@@ -140,6 +179,8 @@ def generate_candidates(
                                 target_statement_id=target_statement_id,
                                 evidence_id=canonical_evidence_id,
                                 argument=item.get("argument") or item.get("dialogue") or "",
+                                present_evidence=item.get("present_evidence", True),
+                                presentation_score=item.get("presentation_score", 0.0),
                             )
                         )
                     return candidates
@@ -158,6 +199,10 @@ def generate_candidates(
             strategy,
         )
 
+        # Score the evidence for this target statement and decide whether to present it
+        presentation_score = _score_evidence(evidence, target_stmt, timeline_text, fact_texts)
+        present_evidence = presentation_score >= present_threshold
+
         candidates.append(
             CandidateArgument(
                 candidate_id=f"cand_{idx + 1}",
@@ -165,6 +210,8 @@ def generate_candidates(
                 target_statement_id=target_stmt.get("id", "stmt_1"),
                 evidence_id=evidence.get("id", "unknown_evidence"),
                 argument=arg_text,
+                present_evidence=present_evidence,
+                presentation_score=presentation_score,
             )
         )
 
