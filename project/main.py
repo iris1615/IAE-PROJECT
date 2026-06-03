@@ -320,6 +320,7 @@ def run_pipeline(
                                 adaptation=adaptation,
                                 history=trial_state.player_choices,
                                 ollama_model=ollama_model,
+                                phase=phase_type,
                             )
                             for r in reactions:
                                 print(f"[REACTION] {r.npc_name} ({r.role}): {r.text}")
@@ -489,6 +490,7 @@ def run_pipeline(
                     adaptation=adaptation,
                     history=trial_state.player_choices,
                     ollama_model=ollama_model,
+                    phase=phase_type,
                 )
                 # print prosecutor reactions first
                 for r in reactions:
@@ -606,6 +608,7 @@ def run_pipeline(
                                 adaptation=adaptation,
                                 history=trial_state.player_choices,
                                 ollama_model=ollama_model,
+                                phase=phase_type,
                             )
                             for r in reactions:
                                 print(f"[REACTION] {r.npc_name} ({r.role}): {r.text}")
