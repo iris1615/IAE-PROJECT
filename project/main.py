@@ -352,6 +352,13 @@ def run_pipeline(
 
             final_argument = polished or selected_text or "(no argument available)"
             print("\nPresented argument:")
+            log_dialogue(
+                repo_root / "project" / "logs" / "runtime.jsonl",
+                case_id=case_id,
+                speaker="Player",
+                text=final_argument,
+                source="cli_presented_argument",
+            )
             print(final_argument)
 
             # persist presented argument in trial state
@@ -387,6 +394,13 @@ def run_pipeline(
                 for r in reactions:
                     if r.role and r.role.upper().startswith("PROSECUTOR"):
                         print(f"[PROSECUTOR] {r.npc_name}: {r.text}")
+                        log_dialogue(
+                            repo_root / "project" / "logs" / "runtime.jsonl",
+                            case_id=case_id,
+                            speaker="Prosecutor",
+                            text=r.text,
+                            source="cli_prosecutor_rebuttal",
+                        )
 
             # ask player whether to make a follow-up argument or proceed to judge
             # determine whether there are remaining statements to examine so we can label option 2 accurately

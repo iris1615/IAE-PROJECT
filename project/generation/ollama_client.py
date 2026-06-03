@@ -1,7 +1,17 @@
 import json
 import re
 import subprocess
+import os
 from typing import Any, Optional
+
+
+_ANSI_ESCAPE_RE = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
+
+
+def _strip_ansi(text: str) -> str:
+    # Remove ANSI escape sequences (cursor movement, clear line, colors, etc.).
+    # These can appear when capturing CLI output from tools that assume a TTY.
+    return _ANSI_ESCAPE_RE.sub("", text)
 
 
 def ollama_generate_json(prompt: str, model: str = "llama3:8b", temperature: float = 0.4, timeout: int = 60) -> Optional[Any]:
@@ -158,7 +168,7 @@ def ollama_generate_json(prompt: str, model: str = "llama3:8b", temperature: flo
             sdk_text = getattr(message, "content", None) if message is not None else None
         if sdk_text:
             print("[debug] Ollama Python SDK returned output")
-            parsed = _extract_json(str(sdk_text))
+            parsed = _extract_json(_strip_ansi(str(sdk_text)))
             if parsed is not None:
                 return parsed
             print("[debug] Ollama Python SDK output was not valid JSON; falling back")
@@ -173,8 +183,13 @@ def ollama_generate_json(prompt: str, model: str = "llama3:8b", temperature: flo
     try:
         cmd = ["ollama", "run", model, prompt]
         print(f"[debug] trying ollama command: {' '.join(cmd)}")
-        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout, check=True)
-        out = proc.stdout.strip() or proc.stderr.strip()
+        env = dict(os.environ)
+        # Encourage non-interactive/plain output when stdout is piped.
+        env.setdefault("TERM", "dumb")
+        env.setdefault("NO_COLOR", "1")
+        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout, check=True, env=env)
+        captured = proc.stdout.strip() or proc.stderr.strip()
+        out = _strip_ansi(captured)
         if out:
             print("[debug] ollama command succeeded, captured output")
     except subprocess.CalledProcessError as e:

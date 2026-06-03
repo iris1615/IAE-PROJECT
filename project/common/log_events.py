@@ -1,10 +1,29 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Sequence
 
 from project.logs.logger import append_log
+
+
+_ANSI_ESCAPE_RE = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
+
+
+def _clean_dialogue_text(text: str) -> str:
+    """Remove terminal control sequences and unwrap accidental newlines.
+
+    Some CLI backends (e.g., model CLIs) can emit ANSI cursor/clear codes when
+    stdout is captured. Those should never appear in stored dialogue.
+    """
+    text = _ANSI_ESCAPE_RE.sub("", text)
+    text = text.replace("\r", "")
+    # Replace newlines with spaces so accidental line-wraps don't split words.
+    text = text.replace("\n", " ")
+    # Collapse excessive whitespace.
+    text = re.sub(r"\s+", " ", text).strip()
+    return text
 
 
 def log_event(
@@ -120,7 +139,7 @@ def log_dialogue(log_file: Path, *, case_id: str, speaker: str, text: str, sourc
         log_file,
         event="dialogue",
         case_id=case_id,
-        payload={"speaker": speaker, "text": text},
+        payload={"speaker": speaker, "text": _clean_dialogue_text(text)},
         source=source,
     )
 
@@ -137,7 +156,9 @@ def read_dialogue_events(
         speaker = ev.get("speaker")
         text = ev.get("text")
         if isinstance(speaker, str) and speaker and isinstance(text, str) and text:
-            out.append(ev)
+            ev2 = dict(ev)
+            ev2["text"] = _clean_dialogue_text(text)
+            out.append(ev2)
     return out
 
 

@@ -86,13 +86,13 @@ with st.container():
         with dialogue_container:
             backend_dialogue = read_dialogue_events(_runtime_log_path(), case_id=st.session_state.case_id)
             for line in (st.session_state.dialogue_history + backend_dialogue):
-                if line["speaker"] == "Judge" or line["speaker"] == "judge":
+                if line["speaker"].upper() == "JUDGE":
                     st.markdown(f"👨‍⚖️ **{line['speaker']}:** *\"{line['text']}\"*")
-                elif line["speaker"] == "Narrator" or line["speaker"] == "narrator":
+                elif line["speaker"].upper() == "NARRATOR":
                     st.markdown(f"🎙️ **{line['speaker']}:** *\"{line['text']}\"*")
-                elif line["speaker"] == "Prosecutor" or line["speaker"] == "prosecutor":
+                elif line["speaker"].upper() == "PROSECUTOR":
                     st.markdown(f"🧣 **{line['speaker']}:** *\"{line['text']}\"*")
-                elif line["speaker"] == "Witness" or line["speaker"] == "witness":
+                elif line["speaker"].upper() == "WITNESS":
                     st.markdown(f"👩🏻‍🦰 **{line['speaker']}:** *\"{line['text']}\"*")
                 else:
                     st.markdown(f"🔵 **{line['speaker']}:** *\"{line['text']}\"*")
@@ -101,22 +101,10 @@ with st.container(border=True):
     # 5. SENSEMAKING INTERFACE: PRESENTING THE K CANDIDATES
     st.subheader("💡 Make a choice")
 
-    # Mock arguments simulating generation from Member 2
-    # In Sprint 2, you'll use scikit-learn to cluster these dynamically!
-    mock_candidates = [
-        {"id": 1, "text": "Present the Autopsy Report to show the time of death.", "intent": "Evidence Check", "contradiction": False},
-        {"id": 2, "text": "Present the Pocket Watch to prove the time of the struggle.", "intent": "Evidence Check", "contradiction": False},
-        {"id": 3, "text": "Claim the defendant was at the movies (No alibi evidence exists).", "intent": "Bluffing", "contradiction": True},
-        {"id": 4, "text": "Press the witness on what they were wearing that night.", "intent": "Cross-examination", "contradiction": False},
-        {"id": 5, "text": "Argue that the dark courtroom environment made identification impossible.", "intent": "Cross-examination", "contradiction": False}
-    ]
-
     backend_options_events = read_argument_options_events(_runtime_log_path(), case_id=st.session_state.case_id)
     backend_options = (backend_options_events[-1].get("options") if backend_options_events else None) or []
 
-    candidates = backend_options if backend_options else mock_candidates
-    if candidates is backend_options:
-        st.caption("Options loaded from backend")
+    candidates = backend_options
 
     # Display layout options using columns
     if candidates:
