@@ -74,6 +74,7 @@ PRIORITIZE EVIDENCE FOR REASONING:
 
 OUTPUT EXTENSION (optional):
 - In addition to the required fields, you may include an optional `unlocks_truth_ids` array listing `truth`/`fact` IDs the argument supports. This field is optional but recommended when the argument provides a path to establish a hidden truth from concrete evidence.
+ - Optionally include a boolean field `present_evidence` indicating whether the argument should present the evidence item (true/false), and a numeric `presentation_score` between 0.0 and 1.0 expressing how central/strong the evidence is for this argument. If omitted, assume `present_evidence: true` and `presentation_score: 0.0`.
 
 IMPORTANT: Surround the JSON output with these exact delimiters so the caller can extract it reliably:
 
