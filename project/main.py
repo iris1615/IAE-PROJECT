@@ -51,6 +51,7 @@ def _print_case_snapshot(bundle: dict) -> None:
     testimony_items = _iter_testimonies(bundle)
     witness_items = bundle.get("witnesses", {})
     truth = bundle.get("truth", {})
+    known_truths = [fact.get("truth") for fact in truth.get("facts", []) if fact.get("truth")]
 
     if isinstance(evidence_items, dict):
         evidence_ids = [item.get("id") for item in evidence_items.values() if isinstance(item, dict) and item.get("id")]
@@ -87,6 +88,8 @@ def run_pipeline(
     start = time.perf_counter()
 
     bundle = load_case_bundle(repo_root, case_id)
+    truth = bundle.get("truth", {})
+    known_truths = [fact.get("truth") for fact in truth.get("facts", []) if fact.get("truth")]
     docs = build_documents(bundle)
 
     # initialize retrieval and trial state
@@ -199,11 +202,32 @@ def run_pipeline(
 
                 # choose statement by number
                 proceed_to_final = False
+                preselected_next_phase = None
                 while True:
                     raw = input("Choose a statement to challenge by number (or Enter to skip): ").strip()
                     if raw == "":
-                        # Ask whether to proceed to final defense or continue cross-exam
-                        yn = input("No statement chosen. Proceed to final defense? (y/n): ").strip().lower()
+                        # If there is another CROSS_EXAMINATION phase later in the case, go to it.
+                        # Only ask about proceeding to final defense if no further cross-exams exist.
+                        look_pid = current_phase_id
+                        found_cross = None
+                        while True:
+                            look_pid = trial_state.next_phase_id(look_pid)
+                            if not look_pid:
+                                break
+                            p = trial_state.phases.get(look_pid, {})
+                            if p.get("type") == "CROSS_EXAMINATION":
+                                found_cross = look_pid
+                                break
+
+                        if found_cross:
+                            # move to the next cross-examination phase later in the flow
+                            chosen_stmt = None
+                            proceed_to_final = False
+                            preselected_next_phase = found_cross
+                            break
+
+                        # no further cross-exams; confirm moving to final defense
+                        yn = input("No more cross-examinations. Proceed to final defense? (y/n): ").strip().lower()
                         if yn in {"y", "yes"}:
                             chosen_stmt = None
                             proceed_to_final = True
@@ -222,7 +246,9 @@ def run_pipeline(
                     print(f"Choose a number between 1 and {len(statements)}.")
 
                 if not chosen_stmt:
-                    if proceed_to_final:
+                    if preselected_next_phase:
+                        next_phase_id = preselected_next_phase
+                    elif proceed_to_final:
                         # find final_defense phase id
                         final_phase_id = None
                         for pid, p in trial_state.phases.items():
@@ -243,7 +269,18 @@ def run_pipeline(
                         current_phase=current_phase_id,
                         player_action=target_text,
                     )
-                    prompt = build_prompt(context=context, adaptation=adaptation, retrieved=retrieved)
+                    prompt = build_prompt(
+                        context=context,
+                        adaptation=adaptation,
+                        retrieved=retrieved,
+                        known_truths=known_truths,
+                        proven_steps=[
+                            f"{choice.get('target_statement_id')}: {choice.get('argument') or choice.get('presented_argument')}"
+                            for choice in trial_state.player_choices
+                            if choice.get("verdict_valid")
+                        ],
+                        evidence_unlocks=phase.get("evidence_unlocks", []),
+                    )
                     candidates = generate_candidates(
                         bundle=bundle,
                         adaptation=adaptation,
@@ -340,7 +377,18 @@ def run_pipeline(
                     current_phase=current_phase_id,
                     player_action=f"Discussion request. Prior choices:\n{player_context}\nCurrent focus: {action_text}",
                 )
-                prompt = build_prompt(context=context, adaptation=adaptation, retrieved=retrieved)
+                prompt = build_prompt(
+                    context=context,
+                    adaptation=adaptation,
+                    retrieved=retrieved,
+                    known_truths=known_truths,
+                    proven_steps=[
+                        f"{choice.get('target_statement_id')}: {choice.get('argument') or choice.get('presented_argument')}"
+                        for choice in trial_state.player_choices
+                        if choice.get("verdict_valid")
+                    ],
+                    evidence_unlocks=phase.get("evidence_unlocks", []),
+                )
                 candidates = generate_candidates(
                     bundle=bundle,
                     adaptation=adaptation,
@@ -515,7 +563,18 @@ def run_pipeline(
                         player_action=f"Follow-up request. Prior choices:\n{player_context}\nCurrent focus: {action_text}",
                     )
 
-                    prompt = build_prompt(context=context, adaptation=adaptation, retrieved=retrieved)
+                    prompt = build_prompt(
+                        context=context,
+                        adaptation=adaptation,
+                        retrieved=retrieved,
+                        known_truths=known_truths,
+                        proven_steps=[
+                            f"{choice.get('target_statement_id')}: {choice.get('argument') or choice.get('presented_argument')}"
+                            for choice in trial_state.player_choices
+                            if choice.get("verdict_valid")
+                        ],
+                        evidence_unlocks=phase.get("evidence_unlocks", []),
+                    )
                     candidates = generate_candidates(
                         bundle=bundle,
                         adaptation=adaptation,
@@ -655,7 +714,18 @@ def run_pipeline(
                 current_phase=current_phase_id,
                 player_action=f"Closing argument request. Prior choices:\n{summary_context}",
             )
-            prompt = build_prompt(context=context, adaptation=adaptation, retrieved=retrieved)
+            prompt = build_prompt(
+                context=context,
+                adaptation=adaptation,
+                retrieved=retrieved,
+                known_truths=known_truths,
+                proven_steps=[
+                    f"{choice.get('target_statement_id')}: {choice.get('argument') or choice.get('presented_argument')}"
+                    for choice in trial_state.player_choices
+                    if choice.get("verdict_valid")
+                ],
+                evidence_unlocks=phase.get("evidence_unlocks", []),
+            )
             candidates = generate_candidates(
                 bundle=bundle,
                 adaptation=adaptation,
