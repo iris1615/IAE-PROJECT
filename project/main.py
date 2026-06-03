@@ -1,20 +1,12 @@
 from __future__ import annotations
-
 import argparse
 import json
 import time
 import re
 from pathlib import Path
 from project.adaptation.config import AdaptationConfig
-from project.common.types import TrialContext
-from project.generation.candidate_generator import generate_candidates
-from project.logs.logger import append_log
-from project.reactions.engine import build_npc_reactions
-from project.prompts.prompt_builder import build_prompt
 from project.retrieval.loader import build_documents, load_case_bundle
 from project.retrieval.store import LocalRetriever
-from project.ui.cli_demo import choose_candidate, print_player_choices, print_reactions
-from project.verifier.symbolic_verifier import verify_candidate
 from project.retrieval.chroma_indexer import ensure_chroma_index, build_chroma_retriever
 from project.trial.state import TrialState
 
@@ -851,37 +843,47 @@ def run_pipeline(
         current_phase_id = next_phase_id
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Courtroom AI core pipeline demo")
+    parser = argparse.ArgumentParser(description="Courtroom AI architectural core pipeline")
     parser.add_argument("--case-id", default="case_001")
-    parser.add_argument("--query", default="Challenge statement stmt_3 with evidence")
+    parser.add_argument("--query", default="Challenge statement")
     parser.add_argument("--tone", default="neutral", choices=["friendly", "neutral", "aggressive", "informative"])
     parser.add_argument("--k", type=int, default=5)
     parser.add_argument("--retrieval-k", type=int, default=3)
     parser.add_argument("--use-chroma", action="store_true")
-    parser.add_argument("--no-ollama", dest="use_ollama", action="store_false", help="Disable Ollama; use templates instead")
+    parser.add_argument("--no-ollama", dest="use_ollama", action="store_false")
     parser.set_defaults(use_ollama=True)
-    parser.add_argument("--ollama-model", default="llama3:8b", help="Ollama model name to use (e.g. llama3:8b)")
-    parser.add_argument("--hint-level", type=float, default=0.9, help="Adaptation hint level (0-1) controlling NPC reinforcement)")
-    parser.add_argument("--force-reindex", action="store_true", help="Force reindexing of the Chroma collection for the case")
+    parser.add_argument("--ollama-model", default="llama3:8b")
+    parser.add_argument("--hint-level", type=float, default=0.9)
+    parser.add_argument("--force-reindex", action="store_true")
     return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
     repo_root = Path(__file__).resolve().parents[1]
-    run_pipeline(
-        repo_root=repo_root,
-        case_id=args.case_id,
-        query=args.query,
-        tone=args.tone,
-        k=args.k,
-        retrieval_k=args.retrieval_k,
-        use_chroma=args.use_chroma,
-        use_ollama=args.use_ollama,
-        ollama_model=args.ollama_model,
-        hint_level=args.hint_level,
-        force_reindex=args.force_reindex,
+    
+    # 1. Load the case package (Case Bundle)
+    bundle = load_case_bundle(repo_root, args.case_id)
+    docs = build_documents(bundle)
+
+    # 2. Setup storage/indexing retrieval layers
+    retriever = None
+    if args.use_chroma:
+        ensure_chroma_index(repo_root, args.case_id, docs, force=args.force_reindex)
+        retriever = build_chroma_retriever(args.case_id)
+    if retriever is None:
+        retriever = LocalRetriever(docs)
+
+    # 3. Instantiate core game state systems
+    adaptation = AdaptationConfig(tone=args.tone, difficulty=int(bundle["case"].get("difficulty", 1)), hint_level=args.hint_level)
+    trial_state = TrialState(bundle, log_file=repo_root / "project" / "logs" / "runtime.jsonl")
+
+    # 4. Fire the game loop orchester
+    engine = GameEngine(
+        bundle=bundle, retriever=retriever, trial_state=trial_state, adaptation=adaptation,
+        ollama_model=args.ollama_model, use_ollama=args.use_ollama, k=args.k, retrieval_k=args.retrieval_k
     )
+    engine.run()
 
 
 if __name__ == "__main__":
