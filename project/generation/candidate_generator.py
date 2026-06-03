@@ -175,34 +175,26 @@ Helper functions to generate differente arguments styles
 '''
 def _timeline_pressure_argument(statement_text, evidence_name, evidence_description, timeline_text, fact_texts, tone):
     return (
-        f"[timeline-pressure/{tone}] You say '{statement_text}'. "
-        f"Recorded timeline ({timeline_text}) conflicts with that claim, and {evidence_name} "
-        f"({evidence_description}) establishes a temporal mismatch."
+        f"[timeline/{tone}] The timeline does not prove the defendant knew the bill was fake; it only shows {evidence_name} "
+        f"({evidence_description}) entered the scene at a relevant time, which still leaves open the possibility that someone else placed it there."
     )
 
 def _credibility_attack_argument(statement_text, evidence_name, evidence_description, timeline_text, fact_texts, tone):
     return (
-        f"[credibility/{tone}] The witness claims '{statement_text}', a categorical denial. "
-        f"But {evidence_name} directly contradicts that certainty — this weakens reliability."
+        f"[credibility/{tone}] The witness never identified the person near the pocket, so '{statement_text}' remains an uncertain observation rather than proof against the defendant."
     )
 
 def _forensic_framing_argument(statement_text, evidence_name, evidence_description, timeline_text, fact_texts, tone):
-    detail = fact_texts[1] if len(fact_texts) > 1 else (fact_texts[0] if fact_texts else "")
-    suffix = f" Note: {detail}." if detail else ""
     return (
-        f"[forensic/{tone}] {evidence_name} is a material record: {evidence_description}. "
-        f"It provides objective information that cannot be reconciled with '{statement_text}'.{suffix}"
+        f"[forensic/{tone}] {evidence_name} may show the bill was counterfeit, but it does not by itself show the defendant knew that fact; the physical evidence proves the bill's condition, not the defendant's intent."
     )
 
 def _logical_chain_argument(statement_text, evidence_name, evidence_description, timeline_text, fact_texts, tone):
     return (
-        f"[logic-chain/{tone}] Premise A: witness says '{statement_text}'. "
-        f"Premise B: {evidence_name} records a conflicting condition. Therefore, the testimony and record "
-        f"are inconsistent and require resolution."
+        f"[logic/{tone}] Premise A: the bill was counterfeit. Premise B: there is no direct evidence the defendant knew it was fake. Therefore, guilt does not follow, because the missing step is knowledge, not the existence of a fake bill."
     )
 
 def _judge_focused_argument(statement_text, evidence_name, evidence_description, timeline_text, fact_texts, tone):
     return (
-        f"[court-record/{tone}] For the court: statement ('{statement_text}') is challenged by {evidence_name}. "
-        f"This is a material contradiction relevant to credibility and admissibility."
+        f"[court-record/{tone}] The record still leaves open a planted-bill theory: the testimony points to an unidentified figure near the pocket, and that is enough to create reasonable doubt about who introduced the counterfeit money."
     )

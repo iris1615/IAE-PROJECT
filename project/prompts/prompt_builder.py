@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 
 from project.adaptation.config import AdaptationConfig
 from project.common.types import RetrievedChunk, TrialContext
@@ -8,14 +8,24 @@ def build_prompt(
     context: TrialContext,
     adaptation: AdaptationConfig,
     retrieved: List[RetrievedChunk],
+    known_truths: Optional[List[str]] = None,
+    proven_steps: Optional[List[str]] = None,
+    evidence_unlocks: Optional[List[str]] = None,
 ) -> str:
     evidence_block = "\n".join(
         [f"- [{chunk.id}] ({chunk.metadata.get('kind', 'unknown')}): {chunk.content}" for chunk in retrieved]
     )
+    truths_block = "\n".join(f"- {truth}" for truth in (known_truths or []))
+    steps_block = "\n".join(f"- {step}" for step in (proven_steps or []))
+    unlocks_block = "\n".join(f"- {unlock}" for unlock in (evidence_unlocks or []))
+
+    # The player is always the defense attorney in this game.
+    role = "defense attorney"
+    role_natural = role
 
     return f"""
 SYSTEM:
-You are the prosecutor in a courtroom game. Stay grounded in provided facts only.
+You are the {role_natural} in a courtroom game. Stay grounded in provided facts only.
 
 PERSONALITY:
 Use tone '{adaptation.tone}' with strictness={adaptation.judge_strictness}.
@@ -29,15 +39,42 @@ CURRENT TRIAL STATE:
 - Phase: {context.current_phase}
 - Player action: {context.player_action}
 
+KNOWN CASE TRUTHS:
+{truths_block if truths_block else '- none yet'}
+
+PROVEN DEFENSE STEPS:
+{steps_block if steps_block else '- none yet'}
+
+CURRENT PHASE UNLOCKS:
+{unlocks_block if unlocks_block else '- none'}
+
 RETRIEVED EVIDENCE:
 {evidence_block if evidence_block else '- none'}
 
 TASK:
-Generate 5 distinct objection candidates as a JSON array.
+Generate 5 distinct argument candidates as a JSON array.
 Each candidate must include these fields: `strategy`, `target_statement_id`, `evidence_id`, `argument`.
-`argument` should be a single natural-sounding line the prosecutor would say (human-facing); avoid using internal IDs or variable names in that line.
+`argument` should be a single natural-sounding line the {role_natural} would say (human-facing); avoid using internal IDs or variable names in that line.
 Each `argument` must connect one concrete factual anchor from the retrieved evidence or targeted statement to one inferential claim, so the reasoning is plausible rather than purely repetitive.
 Make each candidate use a different rhetorical strategy (timeline, credibility, forensic, logic, court-record).
+
+When you are defending the defendant, every argument must move toward innocence or reasonable doubt. Do not write arguments that suggest the defendant is guilty, reckless, or knowingly used fake currency. Prefer arguments that:
+- challenge whether the witness actually saw what they claim;
+- separate the existence of counterfeit money from the defendant's knowledge of it;
+- identify another plausible actor who could have planted or switched the bill;
+- use contradictions between testimony, evidence, and timeline to weaken the prosecution's conclusion.
+
+If you are instructed to act as the defense attorney, prioritize arguments that support the defendant's innocence, raise reasonable doubt, challenge the prosecution's inference links, or highlight exculpatory interpretations of the facts. Avoid producing arguments that concede the defendant's guilt or that assert guilt as the primary conclusion.
+
+Use the known truths and proven defense steps to advance the theory of innocence step by step. If a truth is already supported by concrete evidence or a successful prior contradiction, build on it rather than re-arguing it from scratch. If a next actor is implied by the evidence, move the reasoning toward identifying that actor instead of staying at the level of generic disbelief.
+
+PRIORITIZE EVIDENCE FOR REASONING:
+- When building arguments, prefer concrete retrieved evidence items (those with metadata kind 'evidence') as the primary factual anchors.
+- If the retrieval also includes `truth` or `fact` items, treat those as higher-level conclusions that should only be invoked if you can cite a concrete piece of evidence that "unlocks" or supports that truth. For each argument, indicate which truth IDs (if any) the argument would justify unlocking.
+
+OUTPUT EXTENSION (optional):
+- In addition to the required fields, you may include an optional `unlocks_truth_ids` array listing `truth`/`fact` IDs the argument supports. This field is optional but recommended when the argument provides a path to establish a hidden truth from concrete evidence.
+
 IMPORTANT: Surround the JSON output with these exact delimiters so the caller can extract it reliably:
 
 <<<JSON_START>>>
