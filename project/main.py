@@ -6,7 +6,6 @@ import re
 from pathlib import Path
 from project.adaptation.config import AdaptationConfig
 from project.retrieval.loader import build_documents, load_case_bundle
-from project.retrieval.store import LocalRetriever
 from project.retrieval.chroma_indexer import ensure_chroma_index, build_chroma_retriever
 from project.trial.state import TrialState
 
@@ -849,7 +848,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--tone", default="neutral", choices=["friendly", "neutral", "aggressive", "informative"])
     parser.add_argument("--k", type=int, default=5)
     parser.add_argument("--retrieval-k", type=int, default=3)
-    parser.add_argument("--use-chroma", action="store_true")
+    parser.add_argument("--no-chroma", dest="use_chroma", action="store_false", help="Disable Chroma vector database")
+    parser.set_defaults(use_chroma=True)
     parser.add_argument("--no-ollama", dest="use_ollama", action="store_false")
     parser.set_defaults(use_ollama=True)
     parser.add_argument("--ollama-model", default="llama3:8b")
@@ -862,17 +862,13 @@ def main() -> None:
     args = parse_args()
     repo_root = Path(__file__).resolve().parents[1]
     
-    # 1. Load the case package (Case Bundle)
+    # Game memory
     bundle = load_case_bundle(repo_root, args.case_id)
-    docs = build_documents(bundle)
 
-    # 2. Setup storage/indexing retrieval layers
+    # Chroma for LLM
     retriever = None
     if args.use_chroma:
-        ensure_chroma_index(repo_root, args.case_id, docs, force=args.force_reindex)
         retriever = build_chroma_retriever(args.case_id)
-    if retriever is None:
-        retriever = LocalRetriever(docs)
 
     # 3. Instantiate core game state systems
     adaptation = AdaptationConfig(tone=args.tone, difficulty=int(bundle["case"].get("difficulty", 1)), hint_level=args.hint_level)

@@ -345,14 +345,7 @@ def build_npc_reactions(
     ollama_model: str = "llama3:8b",
     phase: Optional[str] = None,
 ) -> List[NPCReaction]:
-    """Build NPC reactions. Prefer generating contextual reactions via Ollama when available,
-    otherwise fall back to template-driven responses.
-
-    `history` is a list of prior player choice dicts (trial_state.player_choices).
-    """
-    # Derive which statement ids have already been publicly argued in cross-examination.
-    # Only entries that have a presented_argument (i.e. went through ARGUMENTATION) count as
-    # "publicly seen" — not just chosen candidates that were never presented.
+    
     publicly_seen_statement_ids: List[str] = [
         h["target_statement_id"]
         for h in (history or [])
@@ -361,10 +354,8 @@ def build_npc_reactions(
 
     is_argumentation = phase and phase.upper() == "ARGUMENTATION"
 
-    # Try LLM-driven reactions first (best-effort)
     try:
         import importlib
-
         mod = importlib.import_module("project.generation.ollama_client")
         ollama_generate_json = getattr(mod, "ollama_generate_json", None)
     except Exception:
@@ -378,6 +369,10 @@ def build_npc_reactions(
             evidence_desc = evidence.get("description") or evidence.get("name") or ""
             ctx_lines.append(f"Defense argument just presented: {getattr(candidate, 'argument', '')}")
             ctx_lines.append(f"Strategy: {getattr(candidate, 'strategy', '')}  Evidence: {evidence.get('name', '')}")
+            
+            # ─── CORREÇÃO 3: INJECTAR SE A JOGADA É VALIDA OU NÃO NO PROMPT ───
+            ctx_lines.append(f"Is Defense Argument Valid/True?: {verdict.valid}")
+            
             if evidence_desc:
                 ctx_lines.append(f"Evidence detail: {evidence_desc}")
             if phase:
@@ -393,10 +388,10 @@ def build_npc_reactions(
                 "You are simulating courtroom NPC reactions in a legal game similar to Ace Attorney.\n\n"
                 "CONTEXT:\n" + "\n".join(ctx_lines) +
                 "\n\nRULES:\n"
-                "- The prosecutor reacts to the defense argument that was JUST presented. "
-                "Do NOT quote or reference testimony statements that have not been mentioned above.\n"
-                "- The witness reacts defensively or nervously to being challenged.\n"
-                "- The judge intervenes only if the argumentation is over; stay quiet during back-and-forth.\n"
+                "- The prosecutor reacts to the defense argument that was JUST presented.\n"
+                "- If 'Is Defense Argument Valid' is True, the prosecutor should feel pressured/angry, and the witness uneasy.\n"
+                "- If 'Is Defense Argument Valid' is False, the prosecutor should be confident and mock the defense.\n"
+                "- Do NOT quote or reference testimony statements that have not been mentioned above.\n"
                 "- Keep each reaction to 1-2 sentences, natural courtroom speech.\n\n"
                 "TASK: Return a JSON array with objects for: prosecutor, witness. "
                 "Each object: {npc_name, role, trigger, mood, text}. "
@@ -409,23 +404,24 @@ def build_npc_reactions(
                 for obj in parsed:
                     if not isinstance(obj, dict):
                         continue
-                    npc_id = obj.get("npc_name", obj.get("npc", obj.get("role", "npc")))
-                    npc_name = obj.get("npc_name", npc_id)
-                    role = obj.get("role", "npc")
+                    # ─── CORREÇÃO 1: NORMALIZAR OS CAMPOS DA IA ───
+                    role = str(obj.get("role", "npc")).strip().lower()
+                    npc_name = obj.get("npc_name", obj.get("npc", role.capitalize()))
+                    npc_id = role if role in ["prosecutor", "witness", "judge"] else npc_name.lower()
                     trigger = obj.get("trigger", "response")
                     mood = obj.get("mood", "neutral")
                     text = obj.get("text", "")
+                    
                     reactions.append(NPCReaction(npc_id=npc_id, npc_name=npc_name, role=role, trigger=trigger, mood=mood, text=text))
+                
                 if reactions:
+                    # Criamos o mapa garantindo chaves limpas e minúsculas
                     role_map = {r.role.lower(): r for r in reactions}
 
+                    # ─── CORREÇÃO 2: SE A IA JÁ GEROU O PROMOTOR, NÃO ADICIONAR O FALLBACK ESTÁTICO ───
                     if is_argumentation:
-                        # Fallback: ensure prosecutor present
-                        if "prosecutor" not in role_map or not role_map["prosecutor"].text.strip():
-                            proc_q = _prosecutor_question_for_candidate(
-                                bundle, candidate, verdict,
-                                publicly_seen_statement_ids=publicly_seen_statement_ids,
-                            )
+                        if "prosecutor" not in role_map:
+                            proc_q = _prosecutor_question_for_candidate(bundle, candidate, verdict, publicly_seen_statement_ids=publicly_seen_statement_ids)
                             prosecutor = bundle.get("prosecutor", {})
                             reactions.append(NPCReaction(
                                 npc_id=prosecutor.get("id", "prosecutor"),
@@ -434,12 +430,8 @@ def build_npc_reactions(
                                 mood="combative" if verdict.valid else "inquisitive",
                                 text=proc_q,
                             ))
-                        # Fallback: ensure witness present
-                        if "witness" not in role_map or not role_map["witness"].text.strip():
-                            w_text = _witness_answer_to_question(
-                                bundle, candidate, verdict, getattr(candidate, "argument", ""),
-                                publicly_seen_statement_ids=publicly_seen_statement_ids,
-                            )
+                        if "witness" not in role_map:
+                            w_text = _witness_answer_to_question(bundle, candidate, verdict, getattr(candidate, "argument", ""), publicly_seen_statement_ids=publicly_seen_statement_ids)
                             witness = _get_target_witness(bundle, getattr(candidate, "target_statement_id", None))
                             if w_text:
                                 reactions.append(NPCReaction(
@@ -449,23 +441,11 @@ def build_npc_reactions(
                                 ))
                         return reactions
 
-                    # Non-argumentation: judge -> witness -> prosecutor
-                    if "judge" not in role_map or not role_map["judge"].text.strip():
+                    # Fluxo Normal (Não-argumentação)
+                    if "judge" not in role_map:
                         reactions.insert(0, _judge_reaction(bundle, candidate, verdict))
-                    if "witness" not in role_map or not role_map["witness"].text.strip():
-                        wr = _witness_reaction(bundle, candidate, verdict)
-                        if wr is not None:
-                            reactions.append(wr)
-                    if "prosecutor" not in role_map or not role_map["prosecutor"].text.strip():
-                        prosecutor = bundle.get("prosecutor", {})
-                        proc_templates = prosecutor.get("reaction_templates", {})
-                        if verdict.valid:
-                            t = proc_templates.get("counter_objection", ["Objection — the evidence does not support that inference, Your Honor."])[0]
-                            reactions.append(NPCReaction(npc_id=prosecutor.get("id", "prosecutor"), npc_name=prosecutor.get("name", "Prosecutor"), role="prosecutor", trigger="counter", mood="combative", text=t))
-                        else:
-                            t = proc_templates.get("support_objection", ["The court should note that the prosecution's evidence remains compelling."])[0]
-                            reactions.append(NPCReaction(npc_id=prosecutor.get("id", "prosecutor"), npc_name=prosecutor.get("name", "Prosecutor"), role="prosecutor", trigger="support", mood="confident", text=t))
                     return reactions
+                    
         except Exception as e:
             print(f"[debug] LLM-driven NPC reactions failed: {e}")
 
