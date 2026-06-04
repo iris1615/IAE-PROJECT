@@ -9,17 +9,15 @@ class DialogueGenerator:
         """Procura e devolve os dados da testemunha a partir do bundle do caso."""
         witnesses = self.engine.bundle.get("witnesses", {})
         
-        # Se for um dicionário de objetos
         if isinstance(witnesses, dict) and witness_id in witnesses:
             return witnesses[witness_id]
             
-        # Se for uma lista de objetos
         if isinstance(witnesses, list):
             for w in witnesses:
                 if isinstance(w, dict) and w.get("id") == witness_id:
                     return w
                     
-        # Fallback caso não encontre no mapa global do bundle
+        # Fallback in case its not in global map of bundle
         witness_state = self.engine.trial_state.witness_states.get(witness_id)
         if witness_state:
             return {
@@ -36,7 +34,6 @@ class DialogueGenerator:
         """Faz a chamada direta à API ou SDK do Ollama configurado no motor."""
         try:
             import ollama
-            # Usa o modelo definido nas configurações do teu motor (ex: 'llama3:8b')
             model_name = getattr(self.engine, "ollama_model", "llama3:8b")
             
             response = ollama.chat(
@@ -46,11 +43,10 @@ class DialogueGenerator:
             )
             return response['message']['content'].strip()
         except Exception as e:
-            # Fallback seguro em caso de falha de ligação ou timeout do Ollama
             return f"[Witness]: \"... I have nothing to say to that charge!\" (Ollama Error: {e})"
 
     def generate_press_response(self, witness_id: str, stress_level: int) -> str:
-        # 1. Carregar os perfis ricos que definiste nos teus JSONs
+        # load witnesses profiles
         witness_data = self.get_witness_data(witness_id) 
         witness_name = witness_data.get("name", "Witness")
         occupation = witness_data.get("occupation", "Unknown")
@@ -61,9 +57,9 @@ class DialogueGenerator:
         hidden_info_str = "\n".join([f"- {info}" for info in hidden_info])
         behavior_str = "\n".join([f"- {b}" for b in behavior])
 
-        # ─── FASE 1: STRESS CRÍTICO (6+) - REVELAÇÃO PARCIAL / DESLIZE ───
+        # parcial revelation when stress 6+
         if stress_level >= 6:
-            # Definir a tag de humor dinamicamente baseada no stress
+            # mood tag based on stress
             mood_tag = "TOTALLY CORNERED" if stress_level >= 8 else "NERVOUS/SLIPPING"
             
             prompt = (
@@ -85,7 +81,7 @@ class DialogueGenerator:
                 f"4. Format the output exactly like this: [{witness_name} ({mood_tag})]: \"[Your text here]\""
             )
 
-        # ─── FASE 2: STRESS MÉDIO/BAIXO (0-5) - EVASIVA/NERVOSA ───
+        # evasive, low stress
         else:
             prompt = (
                 f"You are simulating the witness '{witness_name}' in an Ace Attorney courtroom.\n"

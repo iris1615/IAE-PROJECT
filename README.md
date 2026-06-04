@@ -1,87 +1,78 @@
-# AI Core Pipeline (MVP)
 
-Small, modular, and demonstrable pipeline for grounded courtroom dialogue.
+# AI Courtroom Core Pipeline (MVP)
 
-## Implemented modules
+Small, modular, and demonstrable pipeline for grounded courtroom dialogue driven by Local LLMs (Ollama) and Symbolic Verification.
 
-- `retrieval/`: JSON ingestion and retrieval (Chroma-ready, local fallback available)
-- `prompts/`: prompt builder with trial context and retrieved evidence
-- `generation/`: K-candidate generation (`k=5` default) with one-call strategy
-- `adaptation/`: central adaptation config (tone, difficulty hooks)
-- `verifier/`: symbolic grounding and contradiction checks
-- `logs/`: JSONL experiment and runtime logging
-- `ui/`: tiny CLI demo loop
+## Implemented Modules
 
-## Quick start
+- `retrieval/`: JSON ingestion and semantic retrieval (Chroma-ready, with a robust local fallback).
+- `prompts/`: Dynamic prompt builder. Injects trial context, specific witness behavior rules, and strict negative constraints against lore-breaking.
+- `generation/`:
+  - `DialogueGenerator`: Dynamically generates custom Defense interrogation lines and witness responses split by stress windows (`0-5` Evasive/Uneasy, `6-7` Slipping/Partial Secret Bleed, `8-10` Totally Cornered/Full Secret Confession).
+  - `K-Candidate Generation`: K-candidate strategy generation (`k=5` default) with an integrated one-call strategy.
+- `adaptation/`: Central adaptation config (tone, difficulty hooks, and character persona locking).
+- `verifier/`: Dual-layer symbolic grounding and contradiction checks — instantly rejects LLM-generated team arguments that lack matching factual cues.
+- `game/phase_manager.py`: Core game engine. Handles the cross-examination loop, navigation logic, witness damage mechanics, and the final Closing Argument phase.
+- `logs/`: JSONL experiment, player choices, and runtime events logging (`runtime.jsonl`).
+- `ui/`: Lightweight interactive CLI courtroom demo loop.
+
+## Quick Start
 
 ### Prerequisites
 
 - Install [Ollama](https://ollama.com/) locally.
-- Download the model used by the game loop:
+- Download the base model utilized by the game loop:
 
 ```bash
 ollama pull llama3:8b
 ```
 
-- Make sure the Ollama service is running before starting the pipeline.
+* Make sure the Ollama service is running before starting the pipeline.
 
-1. (Optional) create environment and install deps:
+### Running the Loop
 
-```bash
-pip install -r project/requirements.txt
-```
+1. (Optional) Create a virtual environment and install dependencies:
 
-2. Run demo:
-
-```bash
-#run complete flow
-python -m project.main --case-id case_001
-
-#test a specific statement
-python -m project.main --case-id case_001 --query "Challenge witness statement stmt_3"
-```
-
-## Development: watcher and iterative testing
-
-When you are editing `cases/`, `schemas/` or `project/prompts/` and want the Chroma collections to update automatically, run the reindex watcher in a separate terminal. The watcher debounces rapid file changes and will call the local reindex logic with `force=True` when relevant files change.
-
-Activate your virtualenv and install dependencies if you haven't already:
+**Bash**
 
 ```bash
 source .venv/bin/activate   # or your chosen venv activation
 pip install -r project/requirements.txt
 ```
 
-Start the watcher (from the repository root):
+2. Run the complete case demo flow (The Pastel de Nata and Monopoly money incident)[cite: 6]:
 
-```bash
-python -m project.retrieval.reindex_watcher
+**Bash**
+
+```
+python -m project.main --case-id case_001
 ```
 
-Notes:
+3. Test a specific statement contradiction via direct CLI query:
 
-- The watcher watches `cases/`, `schemas/`, and `project/prompts/`.
-- It is intended for local development only (not production).
-- If you prefer to reindex on-demand, run the pipeline with `--force-reindex`:
+**Bash**
 
 ```bash
-python -m project.main --case-id case_001 --use-chroma --force-reindex
+python -m project.main --case-id case_001 --query "Challenge witness statement stmt_3"
 ```
 
-Stopping the watcher: press `Ctrl+C` in the terminal running it.
+## System Mechanics & Balance Updates
 
-Logging and replay
+### 🔄 Dynamic Pressing (Stress 6+ Mechanics)
 
-- Runtime events (player choices and the final verdict) are appended to `project/logs/runtime.jsonl`.
-- Final closing argument and final verdict are persisted into the runtime log for easy replay and analysis.
+The `Press Witness` action [1] is no longer a static text loop.
 
-Tips
+1. The Defense Attorney builds a contextual accusation on the fly matching the chosen statement.
+2. The active witness's stress increment is gated to a controlled `+1` per press.
+3. Upon hitting  **Stress level 6 or higher** , the witness cracks, causing their unique `hidden_information` block from their JSON profile to bleed directly into their spoken lines (e.g., Kip Hunter admitting her hidden Monopoly obsession).
 
-- If `ollama` is not installed or the model is unavailable, the code falls back to local template-based generators. Use `--no-ollama` to force template mode for deterministic testing.
-- To speed up iteration, run the watcher in a separate terminal while you edit cases; the pipeline will pick up reindexed collections automatically.
+### Anti-Hallucination Closing Argument
 
-## Notes
+The final `Closing Argument` is generated using a lower `temperature=0.5` setting and is anchored strictly to the `discovered_facts` array. The local LLM is forbidden by explicit negative prompts from inventing unrelated severe crimes (like random murders, dark office windows, or mysterious phone calls) outside the scope of the actual case file.
 
-- The pipeline works without external APIs by using a deterministic local candidate generator.
-- If you later add OpenAI/other LLM calls, keep the same interfaces and only swap `generation/candidate_generator.py` internals.
-- Keep retrieval `k` small (2-5) to avoid prompt bloat.
+### Developer Iteration & Fallbacks
+
+* If `ollama` is not running or a model timeout occurs, the codebase automatically catches the exception and falls back to local, template-based deterministic responses so the game loop never crashes. Use `--no-ollama` to force this testing environment.
+* To run the update the database just run the setup_chroma.py:
+
+` ```  python setup_chroma.py `
