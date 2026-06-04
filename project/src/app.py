@@ -9,7 +9,7 @@ _REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
-from project.common.log_events import read_argument_options_events, read_dialogue_events, read_evidence_events, reset_log_events
+from project.common.log_events import read_argument_options_events, read_dialogue_events, read_evidence_events, read_statement_events ,log_input, reset_log_events
 
 # Streamlit requires page configuration to be set before other UI calls.
 st.set_page_config(page_title="Ace Attorney AI", layout="wide")
@@ -24,8 +24,6 @@ st_autorefresh(interval=2000, key="timed_refresh")
 # We use st.session_state so data survives the top-to-bottom script re-runs.
 if "game_step" not in st.session_state:
     st.session_state.game_step = 0
-if "case_id" not in st.session_state:
-    st.session_state.case_id = "case_001"
 if "dialogue_history" not in st.session_state:
     st.session_state.dialogue_history = []
 if "telemetry_log" not in st.session_state:
@@ -72,7 +70,7 @@ with st.container():
             st.write("Review your gathered evidence below:")
 
             # Evidence emitted by the backend (e.g., from project.main)
-            for ev in read_evidence_events(_runtime_log_path(), case_id=st.session_state.case_id):
+            for ev in read_evidence_events(_runtime_log_path()):
                 _render_evidence_card(ev["title"], ev["description"])
 
     with mid_col:
@@ -84,7 +82,7 @@ with st.container():
         # Container keeps the history visually clean
         dialogue_container = st.container(height=450, border=True)
         with dialogue_container:
-            backend_dialogue = read_dialogue_events(_runtime_log_path(), case_id=st.session_state.case_id)
+            backend_dialogue = read_dialogue_events(_runtime_log_path())
             for line in (st.session_state.dialogue_history + backend_dialogue):
                 if line["speaker"].upper() == "JUDGE":
                     st.markdown(f"👨‍⚖️ **{line['speaker']}:** *\"{line['text']}\"*")
@@ -101,10 +99,14 @@ with st.container(border=True):
     # 5. SENSEMAKING INTERFACE: PRESENTING THE K CANDIDATES
     st.subheader("💡 Make a choice")
 
-    backend_options_events = read_argument_options_events(_runtime_log_path(), case_id=st.session_state.case_id)
+    backend_options_events = read_argument_options_events(_runtime_log_path())
     backend_options = (backend_options_events[-1].get("options") if backend_options_events else None) or []
 
     candidates = backend_options
+
+    statement = read_statement_events(_runtime_log_path())
+    if statement:
+        st.markdown(f"**Current Statement:** {statement[-1]['text']}")
 
     # Display layout options using columns
     if candidates:
@@ -129,16 +131,13 @@ with st.container(border=True):
                 cid = candidate.get("id", idx + 1)
                 if st.button("Present", key=f"btn_{cid}"):
                     log_telemetry("argument_selected", text)
-
-                    # Update the game progression state
-                    st.session_state.dialogue_history.append({"speaker": "Defense (You)", "text": text})
-
-                    # Simple reactive response mechanism (Sprint 1 placeholder)
-                    if contradiction:
-                        st.session_state.dialogue_history.append({"speaker": "Judge", "text": "Order! That statement flies completely in the face of established reality!"})
-                        log_telemetry("player_mistake", "Contradiction penalty triggered.")
-                    else:
-                        st.session_state.dialogue_history.append({"speaker": "Prosecutor", "text": "Objection! That argument is entirely trivial!"})
+                    log_input(
+                        log_file= _repo_root() / "project" / "logs" / "input.jsonl", 
+                        input_type="argument_option_selection",
+                        input_value=cid, 
+                        source="app.py"
+                    )
+                    print(f"User selected option {cid}: {text}")
 
                     # Instantly refresh the UI state layout
                     st.rerun()

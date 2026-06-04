@@ -30,7 +30,6 @@ def log_event(
     log_file: Path,
     *,
     event: str,
-    case_id: str,
     payload: Dict[str, Any],
     source: str = "cli",
 ) -> None:
@@ -42,7 +41,6 @@ def log_event(
         log_file,
         {
             "event": event,
-            "case_id": case_id,
             "source": source,
             **payload,
         },
@@ -52,7 +50,6 @@ def log_event(
 def read_events(
     log_file: Path,
     *,
-    case_id: Optional[str] = None,
     event_types: Optional[Sequence[str]] = None,
     max_events: int = 500,
 ) -> List[Dict[str, Any]]:
@@ -84,9 +81,6 @@ def read_events(
             if allowed is not None and etype not in allowed:
                 continue
 
-            if case_id is not None and obj.get("case_id") != case_id:
-                continue
-
             out.append(obj)
 
         if len(out) > max_events:
@@ -107,11 +101,10 @@ def _only_dicts(items: Iterable[Any]) -> List[Dict[str, Any]]:
 
 # --- Convenience helpers (evidence / dialogue / options) ---
 
-def log_evidence(log_file: Path, *, case_id: str, title: str, description: str, source: str = "cli") -> None:
+def log_evidence(log_file: Path, *, title: str, description: str, source: str = "cli") -> None:
     log_event(
         log_file,
         event="evidence",
-        case_id=case_id,
         payload={"title": title, "description": description},
         source=source,
     )
@@ -120,10 +113,9 @@ def log_evidence(log_file: Path, *, case_id: str, title: str, description: str, 
 def read_evidence_events(
     log_file: Path,
     *,
-    case_id: Optional[str] = None,
     max_events: int = 200,
 ) -> List[Dict[str, Any]]:
-    events = read_events(log_file, case_id=case_id, event_types=["evidence"], max_events=max_events)
+    events = read_events(log_file, event_types=["evidence"], max_events=max_events)
     # Keep only well-formed evidence events for callers that expect these keys.
     out: List[Dict[str, Any]] = []
     for ev in events:
@@ -134,11 +126,10 @@ def read_evidence_events(
     return out
 
 
-def log_dialogue(log_file: Path, *, case_id: str, speaker: str, text: str, source: str = "cli") -> None:
+def log_dialogue(log_file: Path, *, speaker: str, text: str, source: str = "cli") -> None:
     log_event(
         log_file,
         event="dialogue",
-        case_id=case_id,
         payload={"speaker": speaker, "text": _clean_dialogue_text(text)},
         source=source,
     )
@@ -147,10 +138,9 @@ def log_dialogue(log_file: Path, *, case_id: str, speaker: str, text: str, sourc
 def read_dialogue_events(
     log_file: Path,
     *,
-    case_id: Optional[str] = None,
     max_events: int = 500,
 ) -> List[Dict[str, Any]]:
-    events = read_events(log_file, case_id=case_id, event_types=["dialogue"], max_events=max_events)
+    events = read_events(log_file, event_types=["dialogue"], max_events=max_events)
     out: List[Dict[str, Any]] = []
     for ev in events:
         speaker = ev.get("speaker")
@@ -165,7 +155,6 @@ def read_dialogue_events(
 def log_argument_options(
     log_file: Path,
     *,
-    case_id: str,
     options: Sequence[Dict[str, Any]],
     source: str = "cli",
 ) -> None:
@@ -173,7 +162,6 @@ def log_argument_options(
     log_event(
         log_file,
         event="argument_options",
-        case_id=case_id,
         payload={"options": list(options)},
         source=source,
     )
@@ -182,10 +170,9 @@ def log_argument_options(
 def read_argument_options_events(
     log_file: Path,
     *,
-    case_id: Optional[str] = None,
     max_events: int = 50,
 ) -> List[Dict[str, Any]]:
-    events = read_events(log_file, case_id=case_id, event_types=["argument_options"], max_events=max_events)
+    events = read_events(log_file, event_types=["argument_options"], max_events=max_events)
     out: List[Dict[str, Any]] = []
     for ev in events:
         options = ev.get("options")
@@ -195,6 +182,27 @@ def read_argument_options_events(
             out.append(ev2)
     return out
 
+def log_statement(
+    log_file: Path,
+    *,
+    statement_id: str,
+    text: str,
+    source: str = "cli",
+) -> None:
+    log_event(
+        log_file,
+        event="statement",
+        payload={"id": statement_id, "text": _clean_dialogue_text(text)},
+        source=source,
+    )
+
+def read_statement_events(
+    log_file: Path,
+    *,
+    max_events: int = 50,
+) -> List[Dict[str, Any]]:
+    events = read_events(log_file, event_types=["statement"], max_events=max_events)
+    return events
 
 def reset_log_events(log_file: Path) -> None:
     """Delete all stored events by truncating the JSONL log file."""
@@ -202,3 +210,28 @@ def reset_log_events(log_file: Path) -> None:
     # Truncate the file (or create it if missing).
     with log_file.open("w", encoding="utf-8"):
         pass
+
+def log_input(
+    log_file: Path,
+    *,
+    input_type: str,
+    input_value: str,
+    source: str = "cli",
+) -> None:
+    log_event(
+        log_file,
+        event="user_input",
+        payload={"type": input_type, "value": input_value},
+        source=source,
+)
+
+def read_input_events(
+    log_file: Path,
+    *,
+    max_events: int = 50,
+) -> str:
+    events = read_events(log_file, event_types=["user_input"], max_events=max_events)
+    out = ""
+    for ev in events:
+        out=ev.get("value")
+    return out
