@@ -346,6 +346,7 @@ def build_npc_reactions(
     phase: Optional[str] = None,
 ) -> List[NPCReaction]:
     
+    
     publicly_seen_statement_ids: List[str] = [
         h["target_statement_id"]
         for h in (history or [])
@@ -373,6 +374,10 @@ def build_npc_reactions(
             # ─── CORREÇÃO 3: INJECTAR SE A JOGADA É VALIDA OU NÃO NO PROMPT ───
             ctx_lines.append(f"Is Defense Argument Valid/True?: {verdict.valid}")
             
+            
+            # ─── CORREÇÃO 3: INJECTAR SE A JOGADA É VALIDA OU NÃO NO PROMPT ───
+            ctx_lines.append(f"Is Defense Argument Valid/True?: {verdict.valid}")
+            
             if evidence_desc:
                 ctx_lines.append(f"Evidence detail: {evidence_desc}")
             if phase:
@@ -388,6 +393,10 @@ def build_npc_reactions(
                 "You are simulating courtroom NPC reactions in a legal game similar to Ace Attorney.\n\n"
                 "CONTEXT:\n" + "\n".join(ctx_lines) +
                 "\n\nRULES:\n"
+                "- The prosecutor reacts to the defense argument that was JUST presented.\n"
+                "- If 'Is Defense Argument Valid' is True, the prosecutor should feel pressured/angry, and the witness uneasy.\n"
+                "- If 'Is Defense Argument Valid' is False, the prosecutor should be confident and mock the defense.\n"
+                "- Do NOT quote or reference testimony statements that have not been mentioned above.\n"
                 "- The prosecutor reacts to the defense argument that was JUST presented.\n"
                 "- If 'Is Defense Argument Valid' is True, the prosecutor should feel pressured/angry, and the witness uneasy.\n"
                 "- If 'Is Defense Argument Valid' is False, the prosecutor should be confident and mock the defense.\n"
@@ -412,7 +421,9 @@ def build_npc_reactions(
                     mood = obj.get("mood", "neutral")
                     text = obj.get("text", "")
                     
+                    
                     reactions.append(NPCReaction(npc_id=npc_id, npc_name=npc_name, role=role, trigger=trigger, mood=mood, text=text))
+                
                 
                 if reactions:
                     # Criamos o mapa garantindo chaves limpas e minúsculas
@@ -420,6 +431,8 @@ def build_npc_reactions(
 
                     # ─── CORREÇÃO 2: SE A IA JÁ GEROU O PROMOTOR, NÃO ADICIONAR O FALLBACK ESTÁTICO ───
                     if is_argumentation:
+                        if "prosecutor" not in role_map:
+                            proc_q = _prosecutor_question_for_candidate(bundle, candidate, verdict, publicly_seen_statement_ids=publicly_seen_statement_ids)
                         if "prosecutor" not in role_map:
                             proc_q = _prosecutor_question_for_candidate(bundle, candidate, verdict, publicly_seen_statement_ids=publicly_seen_statement_ids)
                             prosecutor = bundle.get("prosecutor", {})
@@ -430,6 +443,8 @@ def build_npc_reactions(
                                 mood="combative" if verdict.valid else "inquisitive",
                                 text=proc_q,
                             ))
+                        if "witness" not in role_map:
+                            w_text = _witness_answer_to_question(bundle, candidate, verdict, getattr(candidate, "argument", ""), publicly_seen_statement_ids=publicly_seen_statement_ids)
                         if "witness" not in role_map:
                             w_text = _witness_answer_to_question(bundle, candidate, verdict, getattr(candidate, "argument", ""), publicly_seen_statement_ids=publicly_seen_statement_ids)
                             witness = _get_target_witness(bundle, getattr(candidate, "target_statement_id", None))
@@ -445,6 +460,7 @@ def build_npc_reactions(
                     if "judge" not in role_map:
                         reactions.insert(0, _judge_reaction(bundle, candidate, verdict))
                     return reactions
+                    
                     
         except Exception as e:
             print(f"[debug] LLM-driven NPC reactions failed: {e}")
