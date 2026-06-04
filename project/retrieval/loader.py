@@ -60,8 +60,6 @@ def load_case_bundle(repo_root: Path, case_id: str) -> Dict:
     return {
         "case": case_data,
         "evidence": evidence_data,
-        # testimonies is now a dict keyed by testimony id, e.g.:
-        # { "testimony_cashier_1": {...}, "testimony_person_in_line_1": {...} }
         "testimonies": testimonies_data,
         "truth": truth_data,
         "witnesses": witnesses_data,

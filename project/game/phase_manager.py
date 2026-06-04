@@ -2,7 +2,6 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod
 from types import SimpleNamespace
-from project.ui.cli_demo import print_player_choices, choose_candidate
 from project.generation.candidate_generator import generate_candidates
 from project.generation.prompt_builder import build_prompt
 from project.generation.symbolic_verifier import verify_candidate
@@ -58,8 +57,6 @@ class CrossExaminationPhase(TrialPhase):
         witness_id = self.phase_data.get("witness_id") or "witness_cashier"
         testimonies_dict = self.engine.bundle.get("testimonies", {})
         
-        
-        # 1. Localizar o depoimento da testemunha atual
         testimony = None
         for t in testimonies_dict.values():
             if t.get("witness_id") == witness_id:
@@ -95,7 +92,7 @@ class CrossExaminationPhase(TrialPhase):
             
             print(f">> Select your action for this statement:")
             print(" [1] Press Witness (Ask for more details)")
-            print(" [2] Brainstorm Strategy Lines (Call LLM Team)")
+            print(" [2] Brainstorm Strategy Lines (Think in arguments)")
             print(" [3] Present Evidence (Contradict)")
             print(" [A] Previous Statement")
             print(" [D] Next Statement")
@@ -104,26 +101,21 @@ class CrossExaminationPhase(TrialPhase):
 
             action_choice = input("Option: ").strip().lower()
 
-            # --- CORREÇÃO DE NAVEGAÇÃO: MOVER PARA TRÁS ---
             if action_choice == "a":
                 current_idx = (current_idx - 1) % total_statements
                 continue
-
-            # --- CORREÇÃO DE NAVEGAÇÃO: MOVER PARA A FRENTE ---
             elif action_choice == "d" or action_choice == "":
                 current_idx = (current_idx + 1) % total_statements
                 continue
-
-            # --- CORREÇÃO DE NAVEGAÇÃO: FORÇAR SAÍDA DA FASE ---
             elif action_choice == "q":
                 break
 
-            # --- OPÇÃO 1: PRESS WITNESS (DINÂMICO) ---
+            # --- PRESS WITNESS ---
             elif action_choice == "1":
                 if stmt.get("can_press"):
                     print(f"\n[DEFENSE ATTORNEY]: Hold it!")
                     
-                    # ─── NOVO: GERAR INTERROGAÇÃO DINÂMICA DO ADVOGADO ───
+                    # Generates dynamic interrogation when pressing
                     defense_press_line = "(Wait, something doesn't add up here...)"
                     if self.engine.use_ollama:
                         try:
@@ -163,7 +155,7 @@ class CrossExaminationPhase(TrialPhase):
 
                     print(f"--- DEBUG: Witness Stress level {stress_level} ---")
                     
-                    # Reação da Testemunha baseado no Stress Acumulado
+                    # Accumulated stress reaction
                     if stress_level < 4:
                         press_msg = stmt.get("press_response", "...")
                         print(f"\n[{witness_name} (CALM)]: \"{press_msg}\"")
@@ -175,7 +167,7 @@ class CrossExaminationPhase(TrialPhase):
     
                 input("\nPress enter to return to the statement options...")
                 
-            # --- OPÇÃO 2: BRAINSTORM STRATEGY LINES (LLM) ---
+            # --- BRAINSTORM STRATEGY LINES (LLM) ---
             elif action_choice == "2":
                 print(f"\n[Thinking...] Consulting your legal team about this specific statement...")
                 retrieved_chunks = self.engine.retriever.similarity_search(stmt.get('text'), k=3)
@@ -273,7 +265,7 @@ class CrossExaminationPhase(TrialPhase):
                     print("\n[DEFENSE ATTORNEY]: (None of my tactical arguments feel stable enough to say out loud right now.)")
                 input("\nPress enter to return to the statement options...")
 
-            # --- OPÇÃO 3: PRESENT EVIDENCE (CONTRADICT) ---
+            # --- PRESENT EVIDENCE (CONTRADICT) ---
             elif action_choice == "3":
                 print("\nAvailable Evidence Inventory:")
                 evidence_list = self.engine.bundle.get("evidence", [])
@@ -343,9 +335,7 @@ class FinalDefensePhase(TrialPhase):
         # If we dont have access to the hidden truths then uses context till now.
         if not discovered_texts:
             discovered_texts = [
-                "Kip Hunter (the cashier) admitted under pressure that she is a massive Monopoly fan and collects the money, which is why she recognized the bill instantly.",
-                "The Security Camera Footage proved that no strange figure put anything in the defendant's pocket, and proved that the defendant did NOT pull the bill from his own pocket.",
-                "The person in line, Shane Wallace, lied to frame the defendant because he hosts a true crime podcast called 'The Case File' and wanted to manufacture a sensational story for his show."
+                "We actually have no idea of whats going on here..."
             ]
 
         # If ollama and we have the hidden facts

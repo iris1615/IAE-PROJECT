@@ -166,7 +166,7 @@ def verify_candidate(
     current_statement_id: Optional[str] = None  # <-- NOVO: Forçado pelo loop do jogo
 ) -> VerifierResult:
     
-    # 1. Resolver o ID da afirmação (usa o do loop se o candidato não tiver)
+    #gets id of the statement
     stmt_id = getattr(candidate, "target_statement_id", None) or current_statement_id
     if not stmt_id:
         return VerifierResult(False, "Missing target_statement_id")
@@ -180,11 +180,11 @@ def verify_candidate(
         return VerifierResult(False, f"Unknown statement '{stmt_id}'")
     stmt = stmts[stmt_id]
 
-    # 2. Validação de Evidência (Tornada opcional para o debate dinâmico)
+    # validations of evidence
     evidence_id = getattr(candidate, "evidence_id", None)
     evidence_text = ""
     
-    if evidence_id:  # Só valida a prova se o candidato a trouxer explicitamente
+    if evidence_id:  # only validates proof if the candidate has it
         evidence_items = _evidence_items(bundle)
         evidence = next((item for item in evidence_items if item.get("id") == evidence_id), None)
         if evidence is None:
@@ -204,14 +204,14 @@ def verify_candidate(
         else:
             evidence_text = f"{evidence.get('name', '')} {evidence.get('description', '')}".strip()
 
-    # 3. Grounding & Texto (Mesma lógica analítica que já tinhas)
+    # Grounding & Text
     statement_text = stmt.get("text", "")
     truth = bundle.get("truth", {})
     truth_facts = " ".join(fact.get("truth", "") for fact in truth.get("facts", []))
     timeline_events = " ".join(f"{event.get('time', '')} {event.get('event', '')}" for event in truth.get("timeline", []))
     grounding_basis = " ".join(part for part in [evidence_text, statement_text, truth_facts, timeline_events] if part).strip()
 
-    # Se não houver texto nenhum para validar, pomos uma base mínima
+    # if we dont have a basis to validate, we give one
     if not grounding_basis:
         grounding_basis = statement_text
 
@@ -225,7 +225,7 @@ def verify_candidate(
             f"Ungrounded argument: overlap too weak (score={grounding_score:.2f})",
         )
 
-    # 4. Estratégia e Inferência (Mantém-se igual e espetacular!)
+    # inference strategy
     cand_strategy = getattr(candidate, "strategy", "logic").lower()
     strategy_cues = _STRATEGY_CUES.get(cand_strategy)
     argument_lower = argument_text.lower()

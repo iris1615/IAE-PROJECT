@@ -19,10 +19,6 @@ def build_prompt(
     steps_block = "\n".join(f"- {step}" for step in (proven_steps or []))
     unlocks_block = "\n".join(f"- {unlock}" for unlock in (evidence_unlocks or []))
 
-    # The player is always the defense attorney in this game.
-    role = "defense attorney"
-    role_natural = role
-
     return f"""
 SYSTEM:
 You are the defense attorney in a courtroom game. Stay grounded in provided facts only.
