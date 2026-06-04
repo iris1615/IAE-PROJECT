@@ -398,16 +398,25 @@ def build_npc_reactions(
                 "Surround with <<<JSON_START>>> and <<<JSON_END>>>."
             )
 
+            # ... (código anterior do prompt e parsing do ollama) ...
             parsed = ollama_generate_json(prompt=llm_prompt, model=ollama_model, temperature=adaptation.temperature)
             if isinstance(parsed, list) and parsed:
                 reactions: List[NPCReaction] = []
                 for obj in parsed:
                     if not isinstance(obj, dict):
                         continue
-                    # ─── CORREÇÃO 1: NORMALIZAR OS CAMPOS DA IA ───
-                    role = str(obj.get("role", "npc")).strip().lower()
-                    npc_name = obj.get("npc_name", obj.get("npc", role.capitalize()))
-                    npc_id = role if role in ["prosecutor", "witness", "judge"] else npc_name.lower()
+                    
+                    # Forçamos tudo para minúsculas para não haver falhas de mapeamento!
+                    role = str(obj.get("role", obj.get("npc_name", "npc"))).strip().lower()
+                    
+                    # Se a IA devolver o nome "Prosecutor", convertemos o role interno para "prosecutor"
+                    if "prosecutor" in role or "valen" in role:
+                        role = "prosecutor"
+                    elif "witness" in role or "cashier" in role or "line" in role:
+                        role = "witness"
+                        
+                    npc_name = obj.get("npc_name", role.capitalize())
+                    npc_id = role
                     trigger = obj.get("trigger", "response")
                     mood = obj.get("mood", "neutral")
                     text = obj.get("text", "")
@@ -415,10 +424,8 @@ def build_npc_reactions(
                     reactions.append(NPCReaction(npc_id=npc_id, npc_name=npc_name, role=role, trigger=trigger, mood=mood, text=text))
                 
                 if reactions:
-                    # Criamos o mapa garantindo chaves limpas e minúsculas
                     role_map = {r.role.lower(): r for r in reactions}
 
-                    # ─── CORREÇÃO 2: SE A IA JÁ GEROU O PROMOTOR, NÃO ADICIONAR O FALLBACK ESTÁTICO ───
                     if is_argumentation:
                         if "prosecutor" not in role_map:
                             proc_q = _prosecutor_question_for_candidate(bundle, candidate, verdict, publicly_seen_statement_ids=publicly_seen_statement_ids)
@@ -439,11 +446,7 @@ def build_npc_reactions(
                                     npc_name=witness.get("name", "Witness"),
                                     role="witness", trigger="answer", mood="uneasy", text=w_text,
                                 ))
-                        return reactions
-
-                    # Fluxo Normal (Não-argumentação)
-                    if "judge" not in role_map:
-                        reactions.insert(0, _judge_reaction(bundle, candidate, verdict))
+                    
                     return reactions
                     
         except Exception as e:
