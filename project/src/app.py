@@ -154,6 +154,9 @@ st.divider()
 with st.expander("🛠️ Live Backend Telemetry (Member 4 Pipeline Feed)"):
     if st.button("Reset app state", key="debug_reset_state"):
         reset_log_events(_runtime_log_path())
+        reset_log_events(_repo_root() / "project" / "logs" / "input.jsonl")
         st.session_state.clear()
         st.rerun()
+    if st.button("Clear Telemetry Data", key="debug_clear_telemetry"):
+        reset_log_events(_repo_root() / "project" / "logs" / "user_info.json")
     st.write(st.session_state.telemetry_log)

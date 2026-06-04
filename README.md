@@ -83,3 +83,8 @@ The final `Closing Argument` is generated using a lower `temperature=0.5` settin
 * cli_flagg = True - input mode turned to cli
 * cli_flagg = Flase - input mode turned to ui
 To run the UI just run in a terminal: streamlit run project/src/app.py  
+
+## Reset app state
+* In the UI, at the debug area, there is 2 buttons:
+- The first, reset app state, clear the streamlit variables, runtime.jsonl and input.jsonl, bassicly reseting the ui part of the current session, it doesnt reset the session, it just doesnt show history data.
+- The second, reset user data, clears the user_info.json, deleting all the user data (action done and specific time)
