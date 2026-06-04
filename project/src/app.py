@@ -9,7 +9,7 @@ _REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
-from project.common.log_events import read_argument_options_events, read_dialogue_events, read_evidence_events, read_statement_events ,log_input, reset_log_events
+from project.common.log_events import read_argument_options_events, read_dialogue_events, read_evidence_events, read_statement_events ,log_input, reset_log_events, log_user_info
 
 # Streamlit requires page configuration to be set before other UI calls.
 st.set_page_config(page_title="Ace Attorney AI", layout="wide")
@@ -131,6 +131,13 @@ with st.container(border=True):
                 cid = candidate.get("id", idx + 1)
                 if st.button("Present", key=f"btn_{cid}"):
                     log_telemetry("argument_selected", text)
+                    log_user_info(
+                        log_file=_repo_root() / "project" / "logs" / "user_info.json",
+                        time_stamp=time.time(),
+                        action="argument_option_selection",
+                        detail=f"Selected option: {cid} - {text}",
+                        source="app.py"
+                    )
                     log_input(
                         log_file= _repo_root() / "project" / "logs" / "input.jsonl", 
                         input_type="argument_option_selection",

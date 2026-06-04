@@ -235,3 +235,33 @@ def read_input_events(
     for ev in events:
         out=ev.get("value")
     return out
+
+def log_user_info(
+    log_file: Path,
+    *,
+    time_stamp: float,
+    action: str,
+    detail: str,
+    source: str = "cli",
+) -> None:
+    log_event(
+        log_file,
+        event="user_info",
+        payload={"time_stamp": time_stamp, "action": action, "detail": detail},
+        source=source,
+)
+
+def read_user_info_events(
+    log_file: Path,
+    *,
+    max_events: int = 50,
+) -> List[Dict[str, Any]]:
+    events = read_events(log_file, event_types=["user_info"], max_events=max_events)
+    out: List[Dict[str, Any]] = []
+    for ev in events:
+        time_stamp = ev.get("time_stamp")
+        action = ev.get("action")
+        detail = ev.get("detail")
+        if isinstance(time_stamp, (int, float)) and isinstance(action, str) and action and isinstance(detail, str):
+            out.append(ev)
+    return out
