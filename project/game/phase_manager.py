@@ -73,239 +73,219 @@ class CrossExaminationPhase(TrialPhase):
             print(f"\n[System] No statements found for cross-examination of {witness_id}.")
             return self.engine.trial_state.next_phase_id(self.phase_id)
 
+        # project/game/phase_manager.py - Dentro de CrossExaminationPhase.execute()
+        
         print(f"\n=== CROSS-EXAMINATION: {witness_id.upper()} ===")
 
-        # 2. Correr a pipeline dinamicamente statement por statement
         for idx, stmt in enumerate(statements):
-            print(f"\n--------------------------------------------------")
-            print(f"Statement [{idx + 1}]: \"{stmt.get('text')}\"")
-            print(f"--------------------------------------------------")
-            
-            # Preparar o contexto para o teu build_prompt antigo
-            # (Podes usar o teu retriever local ou Chroma para obter os chunks relevantes)
-            retrieved_chunks = self.engine.retriever.similarity_search(stmt.get('text'), k=3)
-            
-            # Construir o prompt robusto que já tinhas desenvolvido
-            from project.common.types import TrialContext
-            context_obj = TrialContext(
-                case_id=self.engine.bundle["case"]["id"],
-                case_title=self.engine.bundle["case"].get("title", "Case"),
-                summary=self.engine.bundle["case"].get("summary", ""),
-                current_phase="CROSS_EXAMINATION",
-                player_action=f"Reviewing statement: {stmt.get('text')}"
-            )
-            
-            # 1. Grab fields safely using getattr with empty list fallbacks
-            # Check if your TrialState uses attributes instead of methods, or fallback to []
-            known_truths = []
-            if hasattr(self.engine.trial_state, "known_truths"):
-                known_truths = self.engine.trial_state.known_truths
-            elif hasattr(self.engine.trial_state, "get_known_truths"):
-                known_truths = self.engine.trial_state.get_known_truths()
+            # Este loop controla se o jogador quer continuar a interagir com a MESMA frase
+            while True:
+                print(f"\n--------------------------------------------------")
+                print(f"Statement [{idx + 1}]: \"{stmt.get('text')}\"")
+                print(f"--------------------------------------------------")
+                
+                print(f">> Select your action for this statement:")
+                print(" [1] Press Witness (Ask for more details)")
+                print(" [2] Brainstorm Strategy Lines (Call LLM Team)")
+                print(" [3] Present Evidence (Contradict)")
+                print(" [Enter] Move to next statement")
 
-            proven_steps = []
-            if hasattr(self.engine.trial_state, "proven_steps"):
-                proven_steps = self.engine.trial_state.proven_steps
-            elif hasattr(self.engine.trial_state, "get_proven_steps"):
-                proven_steps = self.engine.trial_state.get_proven_steps()
+                action_choice = input("Option: ").strip()
 
-            prompt = build_prompt(
-                context=context_obj,
-                adaptation=self.engine.adaptation_config,  
-                retrieved=retrieved_chunks,
-                known_truths=known_truths,  # Safe list variable
-                proven_steps=proven_steps   # Safe list variable
-            )
-            
-            # 1. Gerar os 5 candidatos iniciais (k=5)
-            candidates = generate_candidates(
-                bundle=self.engine.bundle,
-                adaptation=self.engine.adaptation_config,
-                k=5,  # Voltamos ao teu plano original de 5!
-                prompt=prompt,
-                use_ollama=True,
-                ollama_model="llama3:8b"
-            )
+                # --- OPÇÃO 1: PRESS WITNESS ---
+                if action_choice == "1":
+                    if stmt.get("can_press"):
+                        print(f"\n[DEFENSE ATTORNEY]: Hold it!")
+        
+                        current_witness_id = testimony.get("witness_id")
+                        witness_state = self.engine.trial_state.witness_states.get(current_witness_id)
+        
+                        # Se por algum motivo o stress inicial estiver alto, vamos mitigá-lo para frases normais
+                        stress_level = witness_state.stress if witness_state else 0
+                        witness_name = witness_state.name if witness_state else "Kip Hunter"
 
-            # 2. Filtrar os candidatos usando o teu Verifier antigo
-            verified_candidates = []
-            for cand in candidates:
-                if isinstance(cand, dict):
-                    cand_obj = SimpleNamespace(**cand)
-                else:
-                    cand_obj = cand
+                        # REGRA DE JOGO: Só damos 1 de dano no Press, por isso ela não deve pinar de stress logo aqui
+                        if witness_state:
+                            witness_state.apply_damage(1)
+                            # Atualiza a variável local para refletir o estado atualizado
+                            stress_level = witness_state.stress
+        
+                        # Pega na resposta estática do teu JSON (ex: "He's always been a nice guy...")
+                        press_msg = stmt.get("press_response")
 
-                if not hasattr(cand_obj, "argument") and hasattr(cand_obj, "text"):
-                    cand_obj.argument = cand_obj.text
-                if not hasattr(cand_obj, "strategy"):
-                    cand_obj.strategy = "logic"
+                        print(f"--- DEBUG: Stress da testemunha é {stress_level} ---")
+                        
+                        # Se a testemunha ainda tem pouco stress (ex: menos de 4), não a deixes entrar em pânico!
+                        if stress_level < 4:
+                            print(f"\n[{witness_name} (CALM)]: \"{press_msg}\"")
+                        else:
+                            # O gerador dinâmico do LLM só entra em ação se ela já estiver sob forte pressão acumulada
+                            dynamic_response = self.engine.dialogue_generator.generate_press_response(current_witness_id, stress_level)
+                            print(f"\n{dynamic_response}")
+                            print(f"[{witness_name}]: \"{press_msg}\"")
+                    else:
+                        print(f"\n[DEFENSE ATTORNEY]: You press the statement, but the witness stands firm.")
+        
+                    input("\nPress enter to return to the statement options...")
+                # --- OPÇÃO 2: BRAINSTORM STRATEGY LINES (O TEU LLM) ---
+                elif action_choice == "2":
+                    print(f"\n[Thinking...] Consulting your legal team about this specific statement...")
+                    retrieved_chunks = self.engine.retriever.similarity_search(stmt.get('text'), k=3)
+                    
+                    from project.common.types import TrialContext
+                    context_obj = TrialContext(
+                        case_id=self.engine.bundle["case"]["id"],
+                        case_title=self.engine.bundle["case"].get("title", "Case"),
+                        summary=self.engine.bundle["case"].get("summary", ""),
+                        current_phase="CROSS_EXAMINATION",
+                        player_action=f"Reviewing statement: {stmt.get('text')}"
+                    )
+                    
+                    known_truths = self.engine.trial_state.known_truths if hasattr(self.engine.trial_state, "known_truths") else []
+                    proven_steps = self.engine.trial_state.proven_steps if hasattr(self.engine.trial_state, "proven_steps") else []
 
-                validation_result = verify_candidate(
-                    bundle=self.engine.bundle,
-                    candidate=cand_obj,
-                    retrieved=retrieved_chunks,
-                    current_statement_id=stmt.get("id")
-                )
-
-                # --- NOVA VERIFICAÇÃO ROBUSTA ---
-                # Se validation_result for um objeto, tentamos ler .is_valid ou .success. 
-                # Como fallback supremo, se a mensagem for "ok", o argumento é válido!
-                is_ok = False
-                if isinstance(validation_result, bool):
-                    is_ok = validation_result
-                else:
-                    is_ok = (
-                        getattr(validation_result, "is_valid", False) or 
-                        getattr(validation_result, "success", False) or 
-                        getattr(validation_result, "reason", "").lower() == "ok"
+                    prompt = build_prompt(
+                        context=context_obj,
+                        adaptation=self.engine.adaptation_config,
+                        retrieved=retrieved_chunks,
+                        known_truths=known_truths,
+                        proven_steps=proven_steps
+                    )
+                    
+                    candidates = generate_candidates(
+                        bundle=self.engine.bundle,
+                        adaptation=self.engine.adaptation_config,
+                        k=5,
+                        prompt=prompt,
+                        use_ollama=True,
+                        ollama_model="llama3:8b"
                     )
 
-                if is_ok:
-                    verified_candidates.append(cand_obj)
-                else:
-                    # Imprime o motivo real do descarte para sabermos o que a IA falhou
-                    reason_msg = getattr(validation_result, "reason", str(validation_result))
-                    print(f"[debug-verifier-failed] Strategy '{cand_obj.strategy}': {reason_msg}")
-                    
-            # 3. Mostrar ao jogador apenas os argumentos validados pela "equipa jurídica" (Pipeline)
-            if verified_candidates:
-                print(f"\nSelect your Strategy Line (Verified Arguments):")
-                for c_idx, cand in enumerate(verified_candidates):
-                    print(f"  [{c_idx + 1}] ({cand.strategy.upper()}): {cand.argument}")
-    
-                # Validação da escolha do jogador
-                arg_choice = input("\nChoose an argument strategy: ").strip()
-                selected_idx = int(arg_choice) - 1 if arg_choice.isdigit() else 0
-                if not (0 <= selected_idx < len(verified_candidates)):
-                    selected_idx = 0
-        
-                    chosen_candidate = verified_candidates[selected_idx]
-                    print(f"\n[DEFENSE ATTORNEY]: {chosen_candidate.argument}")
-                    print(f"[PROSECUTOR]: Objection! The witness is clearly recounting what they saw!")
-                else:
-                    # Fallback caso o número digitado seja inválido
-                    chosen_candidate = verified_candidates[0]
-                    print(f"\n[DEFENSE ATTORNEY]: {chosen_candidate.argument}")
-                    # === REAÇÕES DINÂMICAS ATIVADAS AQUI ===
-                    # Gerar reações dos NPCs (Witness e Prosecutor) recorrendo ao teu motor/Ollama
-                    npc_reactions = self.engine.reaction_generator.generate_reactions(
-                                    candidate=chosen_candidate, 
-                                    verdict_valid=True, # ou passa o veredicto real do Verifier
-                                    phase_type="ARGUMENTATION"
-                                    )
-    
-                    print("\n=== REAÇÕES EM TRIBUNAL ===")
-                    for rx in npc_reactions:
-                        # Formata o output igual ao do teu cli_demo.py
-                        print(f"[{rx.npc_name} ({rx.mood.upper()})]: {rx.text}")
-            else:
-                # Fallback caso o modelo tenha falhado todas as validações ou o verifier tenha sido implacável
-                print("\n[DEFENSE ATTORNEY]: (Thinking... None of my arguments seem structurally sound right now.)")
+                    verified_candidates = []
+                    for cand in candidates:
+                        if isinstance(cand, dict):
+                            cand_obj = SimpleNamespace(**cand)
+                        else:
+                            cand_obj = cand
 
-            # 3. Dar a escolha orgânica de jogabilidade em Inglês
-            # project/game/phase_manager.py - Dentro do loop 'for idx, stmt in enumerate(statements):'
+                        if not hasattr(cand_obj, "argument") and hasattr(cand_obj, "text"):
+                            cand_obj.argument = cand_obj.text
+                        if not hasattr(cand_obj, "strategy"):
+                            cand_obj.strategy = "logic"
 
-            print(f"\n>> What do you wanna do?")
-            print(" [1] Press Witness (Press)")
-            print(" [2] Present Evidence (Contradict)")
-            print(" [Enter] Go to next statement")
+                        validation_result = verify_candidate(
+                            bundle=self.engine.bundle,
+                            candidate=cand_obj,
+                            retrieved=retrieved_chunks,
+                            current_statement_id=stmt.get("id")
+                        )
 
-            choice = input("Select an option: ").strip()
+                        is_ok = isinstance(validation_result, bool) and validation_result or (
+                            getattr(validation_result, "is_valid", False) or 
+                            getattr(validation_result, "success", False) or 
+                            getattr(validation_result, "reason", "").lower() == "ok"
+                        )
 
-            if choice == "1":
-                # Mecânica de Pressionar (Press) estilo Ace Attorney
-                if stmt.get("can_press"):
-                    print(f"\n[DEFENSE ATTORNEY]: Hold it!")
-        
-                    # Se quiseres usar o teu DialogueGenerator dinâmico baseado em Stress:
-                    current_witness_id = testimony.get("witness_id")
-                    witness_state = self.engine.trial_state.witness_states.get(current_witness_id)
-                    stress_level = witness_state.stress if witness_state else 0
-        
-                    # Pega na resposta estática do JSON ou gera dinamicamente
-                    press_msg = stmt.get("press_response")
-                    print(f"\n{self.engine.dialogue_generator.generate_press_response(current_witness_id, stress_level)}")
-                    print(f"[WITNESS]: \"{press_msg}\"")
-        
-                    # [Mecânica Dinâmica]: Aumenta ligeiramente o stress por pressionar falhas na história
-                    if witness_state:
-                        witness_state.apply_damage(1) 
-            else:
-                print(f"\n[DEFENSE ATTORNEY]: Pressionas a declaração, mas a testemunha mantém-se firme.")
-    
-            input("\nPress enter to continue cross-examination...")
-            # Permite voltar a avaliar o mesmo statement ou avançar, dependendo do teu gosto
+                        if is_ok:
+                            verified_candidates.append(cand_obj)
+                        else:
+                            reason_msg = getattr(validation_result, "reason", str(validation_result))
+                            print(f"[debug-verifier-failed] Strategy '{cand_obj.strategy}': {reason_msg}")
+
+                    if verified_candidates:
+                        print(f"\nSelect your Strategy Line (Verified Arguments):")
+                        for c_idx, cand in enumerate(verified_candidates):
+                            print(f"  [{c_idx + 1}] ({cand.strategy.upper()}): {cand.argument}")
             
-            print(f"\n>> What do you wanna do?")
-            print(" [1] Press Witness (Press)")
-            print(" [2] Present Evidence (Contradict)")
-            print(" [Enter] Go to next statement")
-
-            choice = input("Select an option: ").strip()
-
-            # presents evidence to contradict statement
-            if choice == "2":
-                # Mostrar o Inventário de Provas
-                print("\nAvailable Evidence Inventory:")
-                evidence_list = self.engine.bundle.get("evidence", [])
+                        arg_choice = input("\nChoose an argument strategy: ").strip()
+                        selected_idx = int(arg_choice) - 1 if arg_choice.isdigit() else 0
+                        if 0 <= selected_idx < len(verified_candidates):
+                            chosen_candidate = verified_candidates[selected_idx]
+                        else:
+                            chosen_candidate = verified_candidates[0]
                 
-                # Suporte caso o bundle traga a evidência como dicionário mapeado por ID
-                if isinstance(evidence_list, dict):
-                    evidence_list = list(evidence_list.values())
+                        print(f"\n[DEFENSE ATTORNEY]: {chosen_candidate.argument}")
+                        
+                        # Criamos o veredito esperado pelo sistema de reações
+                        from project.common.types import VerifierResult
+                        is_valid_bool = VerifierResult(valid=True, reason="ok")
 
-                for e_idx, ev in enumerate(evidence_list):
-                    print(f"  [{e_idx + 1}] {ev.get('id')}: {ev.get('name')}")
-                
-                ev_choice = input("Select evidence number to present: ").strip()
-                if ev_choice.isdigit():
-                    ev_idx = int(ev_choice) - 1
-                    if 0 <= ev_idx < len(evidence_list):
-                        selected_evidence = evidence_list[ev_idx]
-                        evidence_id = selected_evidence.get("id")
+                        # Passamos os parâmetros corretos exigidos pelo módulo narrative
+                        npc_reactions = self.engine.reaction_generator.generate_reactions(
+                            chosen_candidate,   # candidate
+                            is_valid_bool,      # verdict_valid (True/False)
+                            "ARGUMENTATION"     # phase_type 
+                        )
                         
-                        stmt_id = stmt.get("id")  # ex: "stmt_5"
-                        print(f"\n[Processing Action]: Presenting {evidence_id} against {stmt_id}...")
-                        
-                        # --- NOVA VALIDAÇÃO INVERTIDA (A prova dita o que contradiz!) ---
-                        # 1. Buscar a lista de statements que esta prova consegue derrubar
-                        can_contradict_list = selected_evidence.get("can_contradict", [])
-                        
-                        # Suportar tanto se for uma String única quanto uma Lista de Strings
-                        if isinstance(can_contradict_list, str):
-                            can_contradict_list = [can_contradict_list]
-                        
-                        # 2. Verificar se o statement atual está na lista de alvos da prova
-                        is_valid_contradiction = stmt_id in can_contradict_list
+                        print("\n=== REACTIONS ON THE TRIAL ===")
+                        for rx in npc_reactions:
+                            print(f"[{rx.npc_name} ({rx.mood.upper()})]: {rx.text}")
 
-                        # 3. Dar o veredito do Juiz baseado nos Schemas reais do teu caso
-                        if is_valid_contradiction:
-                            print(f"\n💥 OBJECTION! That's a direct contradiction!")
-                            print(f"[JUDGE]: Sustained! The witness's statement cannot be true given the '{selected_evidence.get('name')}'!")
-    
-                            # 1. Revelar o Facto Oculto da Verdade estruturalmente
-                            fact_id = f"fact_{stmt_id}" 
-                            if stmt_id == "stmt_3":
-                                fact_id = "fact_001"
-                            elif stmt_id == "stmt_5":
-                                fact_id = "fact_002"
+                        current_witness_id = testimony.get("witness_id")
+                        if current_witness_id in self.engine.trial_state.witness_states:
+                            self.engine.trial_state.witness_states[current_witness_id].apply_damage(3)
+                        
+                        input("\nPress enter to advance with this strategic line...")
+                        return self.engine.trial_state.next_phase_id(self.phase_id)
+                    else:
+                        print("\n[DEFENSE ATTORNEY]: (None of my tactical arguments feel stable enough to say out loud right now.)")
+                    input("\nPress enter to return to the statement options...")
 
-                            self.engine.action_resolver.discovery_engine.reveal_fact(fact_id)
-                            self.engine.trial_state.contradictions_found.append(stmt_id)
-    
-                            # 2. Sumário Narrativo do Sucesso (Gerado dinamicamente)
-                            print(f"\n[ANALYSIS]: Com base nesta contradição, a defesa provou que a informação em {stmt_id} é falsa.")
-                            print(f"Progresso da Verdade no Julgamento: {self.engine.trial_state.verdict_progress * 100:.1f}%")
-    
-                            # Forçar a atualização do estado das testemunhas (ex: Shane Wallace fica encurralado)
-                            current_witness_id = testimony.get("witness_id")
-                            if current_witness_id in self.engine.trial_state.witness_states:
-                                self.engine.trial_state.witness_states[current_witness_id].apply_damage(4) # Alto dano de stress
-                                print(f"[{self.engine.trial_state.witness_states[current_witness_id].name} STRESS]: {self.engine.trial_state.witness_states[current_witness_id].stress}/10")
+                # --- OPÇÃO 3: PRESENT EVIDENCE (CONTRADICT) ---
+                elif action_choice == "3":
+                    print("\nAvailable Evidence Inventory:")
+                    evidence_list = self.engine.bundle.get("evidence", [])
+                    if isinstance(evidence_list, dict):
+                        evidence_list = list(evidence_list.values())
+
+                    for e_idx, ev in enumerate(evidence_list):
+                        print(f"  [{e_idx + 1}] {ev.get('id')}: {ev.get('name')}")
+                    
+                    ev_choice = input("Select evidence number to present: ").strip()
+                    if ev_choice.isdigit():
+                        ev_idx = int(ev_choice) - 1
+                        if 0 <= ev_idx < len(evidence_list):
+                            selected_evidence = evidence_list[ev_idx]
+                            evidence_id = selected_evidence.get("id")
+                            stmt_id = stmt.get("id")
+                            
+                            print(f"\n[Processing Action]: Presenting {evidence_id} against {stmt_id}...")
+                            
+                            can_contradict_list = selected_evidence.get("can_contradict", [])
+                            if isinstance(can_contradict_list, str):
+                                can_contradict_list = [can_contradict_list]
+                            
+                            is_valid_contradiction = stmt_id in can_contradict_list
+
+                            if is_valid_contradiction:
+                                print(f"\n💥 OBJECTION! That's a direct contradiction!")
+                                print(f"[JUDGE]: Sustained! The witness's statement cannot be true given the '{selected_evidence.get('name')}'!")
+        
+                                fact_id = f"fact_{stmt_id}" 
+                                if stmt_id == "stmt_3": fact_id = "fact_001"
+                                elif stmt_id == "stmt_5": fact_id = "fact_002"
+
+                                self.engine.action_resolver.discovery_engine.reveal_fact(fact_id)
+                                self.engine.trial_state.contradictions_found.append(stmt_id)
+        
+                                print(f"\n[ANALYSIS]: Based on this contradiction, the defense proved that the info in {stmt_id} is false.")
+                                print(f"Trial Verdict Progress: {self.engine.trial_state.verdict_progress * 100:.1f}%")
+        
+                                current_witness_id = testimony.get("witness_id")
+                                if current_witness_id in self.engine.trial_state.witness_states:
+                                    self.engine.trial_state.witness_states[current_witness_id].apply_damage(4)
+                                    print(f"[{self.engine.trial_state.witness_states[current_witness_id].name} STRESS]: {self.engine.trial_state.witness_states[current_witness_id].stress}/10")
 
                                 input("\nPress enter to advance with this advantage...")
                                 return self.engine.trial_state.next_phase_id(self.phase_id)
-                            
-        # Se percorreu todos os statements e não quebrou nenhum, segue para a próxima fase
+                            else:
+                                print(f"\n[JUDGE]: Overruled! That evidence doesn't seem to contradict what the witness just said.")
+                                input("\nPress enter to return to the statement options...")
+
+                # --- OPÇÃO ENTER: SAIR DESTE STATEMENT E IR PARA O SEGUINTE ---
+                elif action_choice == "":
+                    break # Quebra o while True interno e passa para o próximo statement do loop for
+
         return self.engine.trial_state.next_phase_id(self.phase_id)
 
 class FinalDefensePhase(TrialPhase):
