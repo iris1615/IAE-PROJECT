@@ -34,7 +34,7 @@ class ArgumentGenerator:
             adaptation=self.engine.adaptation,
             k=self.engine.k,
             prompt=prompt,
-            use_ollama=self.engine.use_ollama,  # Mapeia diretamente o teu parâmetro original
+            use_ollama=self.engine.use_ollama,
             ollama_model=self.engine.ollama_model,
         )
         return candidates
