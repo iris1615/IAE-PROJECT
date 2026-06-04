@@ -87,15 +87,11 @@ with st.container():
             backend_dialogue = read_dialogue_events(_runtime_log_path(), case_id=st.session_state.case_id)
             for line in (st.session_state.dialogue_history + backend_dialogue):
                 if line["speaker"].upper() == "JUDGE":
-                if line["speaker"].upper() == "JUDGE":
                     st.markdown(f"👨‍⚖️ **{line['speaker']}:** *\"{line['text']}\"*")
-                elif line["speaker"].upper() == "NARRATOR":
                 elif line["speaker"].upper() == "NARRATOR":
                     st.markdown(f"🎙️ **{line['speaker']}:** *\"{line['text']}\"*")
                 elif line["speaker"].upper() == "PROSECUTOR":
-                elif line["speaker"].upper() == "PROSECUTOR":
                     st.markdown(f"🧣 **{line['speaker']}:** *\"{line['text']}\"*")
-                elif line["speaker"].upper() == "WITNESS":
                 elif line["speaker"].upper() == "WITNESS":
                     st.markdown(f"👩🏻‍🦰 **{line['speaker']}:** *\"{line['text']}\"*")
                 else:
