@@ -8,13 +8,13 @@ from project.adaptation.config import AdaptationConfig
 
 class GameEngine:
     def __init__(
-        self, bundle: dict, retriever, trial_state, adaptation, 
+        self, bundle: dict, retriever, trial_state, adaptation: AdaptationConfig, 
         ollama_model: str, use_ollama: bool = True, k: int = 5, retrieval_k: int = 3
     ):
         self.bundle = bundle
         self.retriever = retriever
         self.trial_state = trial_state
-        self.adaptation_config = AdaptationConfig
+        self.adaptation_config = adaptation
         self.ollama_model = ollama_model
         self.use_ollama = use_ollama
         self.k = k

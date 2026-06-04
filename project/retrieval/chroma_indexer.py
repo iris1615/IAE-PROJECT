@@ -11,12 +11,12 @@ def compute_case_layout_hash(case_dir: Path, case_id: str) -> str:
     """
     hasher = hashlib.md5()
     
-    # Hash the truth file if it exists
+    # 1. Hash the truth file if it exists
     truth_file = case_dir / f"truth_{case_id}.json"
     if truth_file.exists():
         hasher.update(truth_file.read_bytes())
         
-    # Hash all evidence files inside the folder alphabetically
+    # 2. Hash all evidence files inside the folder alphabetically
     evidence_dir = case_dir / "evidences"
     if evidence_dir.exists() and evidence_dir.is_dir():
         for file_path in sorted(evidence_dir.glob("*.json")):
