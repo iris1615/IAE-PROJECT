@@ -332,7 +332,6 @@ class FinalDefensePhase(TrialPhase):
         print(f"\n=== FINAL DEFENSE: CLOSING ARGUMENT ===")
         print("[DEFENSE ATTORNEY]: Your Honor, based on all the evidence set out today...")
         
-        # Recolher os factos que foram efetivamente desbloqueados durante o jogo
         discovered_fact_ids = self.engine.trial_state.discovered_facts
         facts_bundle = self.engine.bundle.get("truth", {}).get("facts", [])
         
@@ -341,20 +340,41 @@ class FinalDefensePhase(TrialPhase):
             if f.get("id") in discovered_fact_ids:
                 discovered_texts.append(f.get("truth"))
                 
-        # Se o jogador descobriu os factos chave, geramos uma conclusão vitoriosa com Ollama
+        # If we dont have access to the hidden truths then uses context till now.
+        if not discovered_texts:
+            discovered_texts = [
+                "Kip Hunter (the cashier) admitted under pressure that she is a massive Monopoly fan and collects the money, which is why she recognized the bill instantly.",
+                "The Security Camera Footage proved that no strange figure put anything in the defendant's pocket, and proved that the defendant did NOT pull the bill from his own pocket.",
+                "The person in line, Shane Wallace, lied to frame the defendant because he hosts a true crime podcast called 'The Case File' and wanted to manufacture a sensational story for his show."
+            ]
+
+        # If ollama and we have the hidden facts
         if discovered_texts and self.engine.use_ollama:
-            facts_str = " ".join(discovered_texts)
+            facts_str = "\n".join([f"- {text}" for text in discovered_texts])
+            
             prompt = (
-                f"Writes a short and impactful closing argument in court for the defense attorney."
-                f"The lawyer must use these proven facts: '{facts_str}'."
-                f"He must logically demonstrate that the defendant has been plotted and is innocent."
+                f"You are the defense attorney delivering a final, dramatic closing argument in an Ace Attorney style.\n"
+                f"The case is strictly about a defendant accused of trying to buy a Pastel de Nata with Monopoly money.\n\n"
+                f"PROVEN FACTS IN THIS TRIAL (You MUST build your argument exclusively around these points):\n"
+                f"{facts_str}\n\n"
+                f"STRICT RULES:\n"
+                f"1. Explain that the defendant is an innocent regular customer who had no idea the bill was fake.\n"
+                f"2. Expose Shane Wallace (the person in line) as the true culprit who framed the defendant to get content for his crime podcast.\n"
+                f"3. Mention how the Security Camera Footage broke the witnesses' lies wide open.\n"
+                f"4. Do NOT invent unrelated crimes (absolutely NO murders, NO office windows, NO phone calls).\n"
+                f"5. Keep it powerful, theatrical, and concise (max 3-4 paragraphs). Do not include any meta-text or markdown headers."
             )
+            
             try:
                 import ollama
-                resp = ollama.chat(model=self.engine.ollama_model, messages=[{"role": "user", "content": prompt}])
-                print(f"\n[DEFENSE ATTORNEY]: {resp['message']['content']}")
-            except Exception:
-                print("\n[DEFENSE ATTORNEY]: The contradictions prove the truth! The defendant didn't know the note was fake!")
+                resp = ollama.chat(
+                    model=self.engine.ollama_model, 
+                    messages=[{"role": "user", "content": prompt}],
+                    options={"temperature": 0.5}  # Temperatura mais baixa reduz a alucinação!
+                )
+                print(f"\n{resp['message']['content'].strip()}")
+            except Exception as e:
+                print("\n[DEFENSE ATTORNEY]: The contradictions prove the absolute truth! The security footage clearly shows my client was framed by the very person standing behind him in line!")
         else:
             print("\n[DEFENSE ATTORNEY]: ...Unfortunately, the evidence gathered cannot fully counter the accusation.")
 
