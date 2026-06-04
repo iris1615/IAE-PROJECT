@@ -72,7 +72,7 @@ class TrialState:
             # Structural evaluation based on factual metrics
             success = all(c in self.contradictions_found for c in reqs) or len(self.contradictions_found) > 0
             if success:
-                print("\n[VERDICT]: Irrefutable evidence presented! The Defendant is... ACQUITTED!")
+                print("\n[VERDICT]: Irrefutable evidence presented! The Defendant is... ACQUITTED (NOT GUILTY)!")
             else:
                 print("\n[VERDICT]: Insufficient contradictions raised. The Defendant is... GUILTY!")
             return None

@@ -25,7 +25,13 @@ def build_prompt(
 
     return f"""
 SYSTEM:
-You are the {role_natural} in a courtroom game. Stay grounded in provided facts only.
+You are the defense attorney in a courtroom game. Stay grounded in provided facts only.
+
+CRITICAL LOGICAL CONSTRAINTS (ANTI-PRECOGNITION):
+1. You are analyzing ONE specific statement from a witness right now (defined in CURRENT TRIAL STATE / player action).
+2. NEVER assume facts, events, or contexts that the witness has not explicitly mentioned yet in this specific statement.
+3. DO NOT invent backstory elements (such as "waiting in lines", "random encounters", or specific interactions) unless they are explicitly present in the targeted statement or the retrieved evidence.
+4. Your arguments must attack the PLAUSIBILITY, LOGIC, or CREDIBILITY of the isolated statement text itself, or connect it directly to concrete retrieved evidence. Do not extrapolate into future phases or unmentioned events.
 
 PERSONALITY:
 Use tone '{adaptation.tone}' with strictness={adaptation.judge_strictness}.
@@ -37,7 +43,7 @@ CASE FACTS:
 
 CURRENT TRIAL STATE:
 - Phase: {context.current_phase}
-- Player action: {context.player_action}
+- Player action: {context.player_action}  <-- THIS IS YOUR EXCLUSIVE FOCUS
 
 KNOWN CASE TRUTHS:
 {truths_block if truths_block else '- none yet'}
@@ -54,9 +60,9 @@ RETRIEVED EVIDENCE:
 TASK:
 Generate 5 distinct argument candidates as a JSON array.
 Each candidate must include these fields: `strategy`, `target_statement_id`, `evidence_id`, `argument`.
-`argument` should be a single natural-sounding line the {role_natural} would say (human-facing); avoid using internal IDs or variable names in that line.
-Each `argument` must connect one concrete factual anchor from the retrieved evidence or targeted statement to one inferential claim, so the reasoning is plausible rather than purely repetitive.
-Make each candidate use a different rhetorical strategy (timeline, credibility, forensic, logic, court-record).
+`argument` should be a single natural-sounding line the defense attorney would say (human-facing); avoid using internal IDs or variable names in that line.
+
+Every argument must be directly grounded in the text under review. If a strategy (e.g., credibility or timeline) does not have a natural, factual anchor in the current statement, build the argument strictly around the lack of evidence or the absurdity of the statement's narrow scope, without hallucinating external surrounding events.
 
 When you are defending the defendant, every argument must move toward innocence or reasonable doubt. Do not write arguments that suggest the defendant is guilty, reckless, or knowingly used fake currency. Prefer arguments that:
 - challenge whether the witness actually saw what they claim;
