@@ -15,7 +15,8 @@
   ],
 
   "can_contradict": [
-    "stmt_2"
+    "stmt_3",
+    "stmt_5"
   ],
 
   "court_record_visible": true

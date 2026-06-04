@@ -186,19 +186,65 @@ class CrossExaminationPhase(TrialPhase):
                     # Fallback caso o número digitado seja inválido
                     chosen_candidate = verified_candidates[0]
                     print(f"\n[DEFENSE ATTORNEY]: {chosen_candidate.argument}")
-                    print(f"[PROSECUTOR]: Objection! The witness is clearly recounting what they saw!")
+                    # === REAÇÕES DINÂMICAS ATIVADAS AQUI ===
+                    # Gerar reações dos NPCs (Witness e Prosecutor) recorrendo ao teu motor/Ollama
+                    npc_reactions = self.engine.reaction_generator.generate_reactions(
+                                    candidate=chosen_candidate, 
+                                    verdict_valid=True, # ou passa o veredicto real do Verifier
+                                    phase_type="ARGUMENTATION"
+                                    )
+    
+                    print("\n=== REAÇÕES EM TRIBUNAL ===")
+                    for rx in npc_reactions:
+                        # Formata o output igual ao do teu cli_demo.py
+                        print(f"[{rx.npc_name} ({rx.mood.upper()})]: {rx.text}")
             else:
                 # Fallback caso o modelo tenha falhado todas as validações ou o verifier tenha sido implacável
                 print("\n[DEFENSE ATTORNEY]: (Thinking... None of my arguments seem structurally sound right now.)")
 
             # 3. Dar a escolha orgânica de jogabilidade em Inglês
-            print(f"\n>> Do you want to challenge this statement with evidence?")
-            print(" [1] Present Evidence")
-            print(" [Enter] Move to the next statement")
-            
+            # project/game/phase_manager.py - Dentro do loop 'for idx, stmt in enumerate(statements):'
+
+            print(f"\n>> What do you wanna do?")
+            print(" [1] Press Witness (Press)")
+            print(" [2] Present Evidence (Contradict)")
+            print(" [Enter] Go to next statement")
+
             choice = input("Select an option: ").strip()
-            # presents evidence to contradict statement
+
             if choice == "1":
+                # Mecânica de Pressionar (Press) estilo Ace Attorney
+                if stmt.get("can_press"):
+                    print(f"\n[DEFENSE ATTORNEY]: Hold it!")
+        
+                    # Se quiseres usar o teu DialogueGenerator dinâmico baseado em Stress:
+                    current_witness_id = testimony.get("witness_id")
+                    witness_state = self.engine.trial_state.witness_states.get(current_witness_id)
+                    stress_level = witness_state.stress if witness_state else 0
+        
+                    # Pega na resposta estática do JSON ou gera dinamicamente
+                    press_msg = stmt.get("press_response")
+                    print(f"\n{self.engine.dialogue_generator.generate_press_response(current_witness_id, stress_level)}")
+                    print(f"[WITNESS]: \"{press_msg}\"")
+        
+                    # [Mecânica Dinâmica]: Aumenta ligeiramente o stress por pressionar falhas na história
+                    if witness_state:
+                        witness_state.apply_damage(1) 
+            else:
+                print(f"\n[DEFENSE ATTORNEY]: Pressionas a declaração, mas a testemunha mantém-se firme.")
+    
+            input("\nPress enter to continue cross-examination...")
+            # Permite voltar a avaliar o mesmo statement ou avançar, dependendo do teu gosto
+            
+            print(f"\n>> What do you wanna do?")
+            print(" [1] Press Witness (Press)")
+            print(" [2] Present Evidence (Contradict)")
+            print(" [Enter] Go to next statement")
+
+            choice = input("Select an option: ").strip()
+
+            # presents evidence to contradict statement
+            if choice == "2":
                 # Mostrar o Inventário de Provas
                 print("\nAvailable Evidence Inventory:")
                 evidence_list = self.engine.bundle.get("evidence", [])
@@ -234,24 +280,68 @@ class CrossExaminationPhase(TrialPhase):
                         # 3. Dar o veredito do Juiz baseado nos Schemas reais do teu caso
                         if is_valid_contradiction:
                             print(f"\n💥 OBJECTION! That's a direct contradiction!")
-                            print(f"[JUDGE]: Sustained! The witness's statement cannot be true given the '{selected_evidence.get('name')}'.")
-                            
-                            # Registar o progresso com sucesso no teu motor de estados
-                            if hasattr(self.engine.trial_state, "register_contradiction"):
-                                self.engine.trial_state.register_contradiction(stmt_id, evidence_id)
-                            
-                            # Interrompe o testemunho atual e avança vitorioso para a próxima fase!
-                            return self.engine.trial_state.next_phase_id(self.phase_id)
-                        else:
-                            print(f"\n[PENALTY]: The Judge bangs the gavel! There's no contradition there!.")
-                            # Mensagem opcional de debug em inglês para te ajudar no desenvolvimento
-                            # print(f"[Debug] Evidence '{evidence_id}' targets {can_contradict_list}, but you attacked '{stmt_id}'.")
-                            
-                            if hasattr(self.engine.trial_state, "apply_penalty"):
-                                self.engine.trial_state.apply_penalty()
+                            print(f"[JUDGE]: Sustained! The witness's statement cannot be true given the '{selected_evidence.get('name')}'!")
+    
+                            # 1. Revelar o Facto Oculto da Verdade estruturalmente
+                            fact_id = f"fact_{stmt_id}" 
+                            if stmt_id == "stmt_3":
+                                fact_id = "fact_001"
+                            elif stmt_id == "stmt_5":
+                                fact_id = "fact_002"
+
+                            self.engine.action_resolver.discovery_engine.reveal_fact(fact_id)
+                            self.engine.trial_state.contradictions_found.append(stmt_id)
+    
+                            # 2. Sumário Narrativo do Sucesso (Gerado dinamicamente)
+                            print(f"\n[ANALYSIS]: Com base nesta contradição, a defesa provou que a informação em {stmt_id} é falsa.")
+                            print(f"Progresso da Verdade no Julgamento: {self.engine.trial_state.verdict_progress * 100:.1f}%")
+    
+                            # Forçar a atualização do estado das testemunhas (ex: Shane Wallace fica encurralado)
+                            current_witness_id = testimony.get("witness_id")
+                            if current_witness_id in self.engine.trial_state.witness_states:
+                                self.engine.trial_state.witness_states[current_witness_id].apply_damage(4) # Alto dano de stress
+                                print(f"[{self.engine.trial_state.witness_states[current_witness_id].name} STRESS]: {self.engine.trial_state.witness_states[current_witness_id].stress}/10")
+
+                                input("\nPress enter to advance with this advantage...")
+                                return self.engine.trial_state.next_phase_id(self.phase_id)
                             
         # Se percorreu todos os statements e não quebrou nenhum, segue para a próxima fase
         return self.engine.trial_state.next_phase_id(self.phase_id)
+
+class FinalDefensePhase(TrialPhase):
+    def execute(self) -> str | None:
+        print(f"\n=== FINAL DEFENSE: CLOSING ARGUMENT ===")
+        print("[DEFENSE ATTORNEY]: Your Honor, based on all the evidence set out today...")
+        
+        # Recolher os factos que foram efetivamente desbloqueados durante o jogo
+        discovered_fact_ids = self.engine.trial_state.discovered_facts
+        facts_bundle = self.engine.bundle.get("truth", {}).get("facts", [])
+        
+        discovered_texts = []
+        for f in facts_bundle:
+            if f.get("id") in discovered_fact_ids:
+                discovered_texts.append(f.get("truth"))
+                
+        # Se o jogador descobriu os factos chave, geramos uma conclusão vitoriosa com Ollama
+        if discovered_texts and self.engine.use_ollama:
+            facts_str = " ".join(discovered_texts)
+            prompt = (
+                f"Writes a short and impactful closing argument in court for the defense attorney."
+                f"The lawyer must use these proven facts: '{facts_str}'."
+                f"He must logically demonstrate that the defendant has been plotted and is innocent."
+            )
+            try:
+                import ollama
+                resp = ollama.chat(model=self.engine.ollama_model, messages=[{"role": "user", "content": prompt}])
+                print(f"\n[DEFENSE ATTORNEY]: {resp['message']['content']}")
+            except Exception:
+                print("\n[DEFENSE ATTORNEY]: The contradictions prove the truth! The defendant didn't know the note was fake!")
+        else:
+            print("\n[DEFENSE ATTORNEY]: ...Unfortunately, the evidence gathered cannot fully counter the accusation.")
+
+        input("\nPress Enter to hear the Judge Veredict...")
+        return self.engine.trial_state.next_phase_id(self.phase_id)
+
 
 class PhaseManager:
     def __init__(self, engine, retriever, trial_state, adaptation, ollama_model: str):
@@ -259,7 +349,8 @@ class PhaseManager:
         self._registry = {
             "INTRO": IntroPhase,
             "TESTIMONY": TestimonyPhase,
-            "CROSS_EXAMINATION": CrossExaminationPhase
+            "CROSS_EXAMINATION": CrossExaminationPhase,
+            "FINAL_DEFENSE": FinalDefensePhase
         }
 
     def execute_phase(self, phase_id: str) -> str | None:
