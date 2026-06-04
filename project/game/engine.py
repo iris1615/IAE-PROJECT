@@ -30,7 +30,6 @@ class GameEngine:
         self.dialogue_generator = DialogueGenerator(self)
 
     def run(self) -> None:
-        """Purified 5-line core execution loop. God Object completely eradicated."""
         phases_list = self.bundle["case"].get("phases", [])
         if not phases_list:
             return

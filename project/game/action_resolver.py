@@ -15,7 +15,7 @@ class ActionResolver:
         self.discovery_engine = DiscoveryEngine(trial_state)
 
     def resolve_action(self, action: str, statement_id: str, evidence_id: str) -> ActionResult:
-        """Processes the structural action strictly against Phase 7 solution data formats."""
+        
         if action != "PRESENT":
             return ActionResult(False, None, 0, "CONTINUE")
 

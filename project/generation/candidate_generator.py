@@ -46,44 +46,6 @@ def _testimony_items(bundle: Dict) -> List[Dict]:
     return []
 
 
-def _score_evidence(evidence: Dict, target_stmt: Dict, timeline_text: str, fact_texts: List[str]) -> float:
-    """Simple heuristic to score how useful an evidence item is for contradicting or supporting a target statement.
-
-    Returns a score in [0.0, 1.0]. Higher means more useful to present.
-    """
-    if not evidence:
-        return 0.0
-
-    # If the statement explicitly lists this evidence as the contradicting item, it's maximally useful.
-    contradicted_by = target_stmt.get("contradicted_by") if target_stmt else None
-    if contradicted_by and contradicted_by == evidence.get("id"):
-        return 1.0
-
-    score = 0.0
-
-    # Evidence that "reveals" concrete facts is more useful
-    if evidence.get("reveals"):
-        score += 0.5
-
-    desc = (evidence.get("description") or "").lower()
-    name = (evidence.get("name") or "").lower()
-
-    # Objective artifacts (photos, footage, marked items, biometrics) are stronger anchors
-    if any(k in desc for k in ("photo", "video", "footage", "security", "surveillance", "marked", "fingerprint", "dna", "receipt")):
-        score += 0.4
-
-    # If the evidence name or description echoes the statement text or timeline, boost slightly
-    stmt_text = (target_stmt.get("text") if target_stmt else "") or ""
-    if name and name in stmt_text.lower():
-        score += 0.3
-    for w in timeline_text.lower().split():
-        if w and w in desc:
-            score += 0.05
-            break
-
-    return min(score, 1.0)
-
-
 def generate_candidates(
     bundle: Dict,
     adaptation: AdaptationConfig,
@@ -120,24 +82,11 @@ def generate_candidates(
         target_stmt = selected_statements[0] if selected_statements else {"id": "stmt_1", "text": ""}
         evidence = _pick_evidence(bundle, target_stmt)
 
-    # prepare context bits used by templates
-    timeline = truth.get("timeline", [])
-    timeline_text = ", ".join([f"{e.get('time','?')}: {e.get('event','')}" for e in timeline[:3]])
-    fact_texts = [f.get("truth", "") for f in truth.get("facts", [])]
-
-    # list of different argument-builder functions (each returns a string)
-    templates = [
-        _timeline_pressure_argument,
-        _credibility_attack_argument,
-        _forensic_framing_argument,
-        _logical_chain_argument,
-        _judge_focused_argument,
-    ]
 
     strategies = ["timeline", "credibility", "forensic", "logic", "court-record"]
     candidates: List[CandidateArgument] = []
 
-    # If user requested Ollama and client available, attempt a single LLM call to produce JSON candidates
+    # now ollama is used by default
     if use_ollama and prompt:
         # allow updating the module-level reference during lazy import
         global ollama_generate_json
@@ -195,33 +144,3 @@ def generate_candidates(
                             )
                         )
                     return candidates
-            # on failure, fall back to local templates
-    
-'''
-Helper functions to generate differente arguments styles
-'''
-def _timeline_pressure_argument(statement_text, evidence_name, evidence_description, timeline_text, fact_texts, tone):
-    return (
-        f"[timeline/{tone}] The timeline does not prove the defendant knew the bill was fake; it only shows {evidence_name} "
-        f"({evidence_description}) entered the scene at a relevant time, which still leaves open the possibility that someone else placed it there."
-    )
-
-def _credibility_attack_argument(statement_text, evidence_name, evidence_description, timeline_text, fact_texts, tone):
-    return (
-        f"[credibility/{tone}] The witness never identified the person near the pocket, so '{statement_text}' remains an uncertain observation rather than proof against the defendant."
-    )
-
-def _forensic_framing_argument(statement_text, evidence_name, evidence_description, timeline_text, fact_texts, tone):
-    return (
-        f"[forensic/{tone}] {evidence_name} may show the bill was counterfeit, but it does not by itself show the defendant knew that fact; the physical evidence proves the bill's condition, not the defendant's intent."
-    )
-
-def _logical_chain_argument(statement_text, evidence_name, evidence_description, timeline_text, fact_texts, tone):
-    return (
-        f"[logic/{tone}] Premise A: the bill was counterfeit. Premise B: there is no direct evidence the defendant knew it was fake. Therefore, guilt does not follow, because the missing step is knowledge, not the existence of a fake bill."
-    )
-
-def _judge_focused_argument(statement_text, evidence_name, evidence_description, timeline_text, fact_texts, tone):
-    return (
-        f"[court-record/{tone}] The record still leaves open a planted-bill theory: the testimony points to an unidentified figure near the pocket, and that is enough to create reasonable doubt about who introduced the counterfeit money."
-    )

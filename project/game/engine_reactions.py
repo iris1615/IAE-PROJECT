@@ -398,7 +398,6 @@ def build_npc_reactions(
                 "Surround with <<<JSON_START>>> and <<<JSON_END>>>."
             )
 
-            # ... (código anterior do prompt e parsing do ollama) ...
             parsed = ollama_generate_json(prompt=llm_prompt, model=ollama_model, temperature=adaptation.temperature)
             if isinstance(parsed, list) and parsed:
                 reactions: List[NPCReaction] = []
