@@ -5,12 +5,14 @@ from project.narrative.argument_generator import ArgumentGenerator
 from project.narrative.reaction_generator import ReactionGenerator
 from project.narrative.dialogue_generator import DialogueGenerator
 from project.adaptation.config import AdaptationConfig
+from pathlib import Path
 
 class GameEngine:
     def __init__(
         self, bundle: dict, retriever, trial_state, adaptation: AdaptationConfig, 
         ollama_model: str, use_ollama: bool = True, k: int = 5, retrieval_k: int = 3
     ):
+        self.repo_root = Path(__file__).resolve().parents[1]
         self.bundle = bundle
         self.retriever = retriever
         self.trial_state = trial_state

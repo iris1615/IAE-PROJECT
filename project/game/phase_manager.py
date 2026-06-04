@@ -5,16 +5,27 @@ from types import SimpleNamespace
 from project.generation.candidate_generator import generate_candidates
 from project.generation.prompt_builder import build_prompt
 from project.generation.symbolic_verifier import verify_candidate
+from project.common.log_events import log_dialogue, log_argument_options, log_evidence, log_statement, read_input_events, reset_log_events
 
 class TrialPhase(ABC):
     def __init__(self, phase_id: str, phase_data: dict, engine):
         self.phase_id = phase_id
         self.phase_data = phase_data
         self.engine = engine
+        self.cli_flagg = False  # Set to True to enable CLI input, False to read from logs (for Streamlit integration)
 
     @abstractmethod
     def execute(self) -> str | None:
         pass
+    
+    def streamlit_input(self):
+        value = ""
+        while not value:
+            value = read_input_events(self.engine.repo_root / "logs" / "input.jsonl", max_events=1)
+            if value:
+                reset_log_events(self.engine.repo_root / "logs" / "input.jsonl")
+                return str(value).strip().lower()
+
 
 
 class IntroPhase(TrialPhase):
@@ -22,7 +33,23 @@ class IntroPhase(TrialPhase):
         case = self.engine.bundle.get("case", {})
         print(f"\n[SCENE FOCUS: {self.phase_data.get('scene', 'courtroom_opening').upper()}]")
         print(f"-> {case.get('summary', '')}")
-        input("\nPress Enter to continue to the testimony...")
+
+        log_dialogue(
+            log_file= self.engine.repo_root / "logs" / "runtime.jsonl",
+            speaker="Narrator",
+            text=case.get('summary', ''),
+            source="phase_manager.IntroPhase"
+        )
+
+        if self.cli_flagg:
+            input("\nPress Enter to continue to the testimony...")
+        else:
+            log_argument_options(
+                log_file= self.engine.repo_root / "logs" / "runtime.jsonl",
+                options=[{"intent": "Continue", "text": "Press Enter to continue to the testimony..."}],
+                source="phase_manager.IntroPhase"
+            )
+            self.streamlit_input()
         return self.engine.trial_state.next_phase_id(self.phase_id)
 
 
@@ -48,7 +75,22 @@ class TestimonyPhase(TrialPhase):
         for stmt in testimony.get("statements", []):
             print(f"  [{stmt.get('id')}]: \"{stmt.get('text')}\"")
             
-        input("\nPress Enter to proceed to Cross-Examination...")
+            log_dialogue(
+                log_file= self.engine.repo_root / "logs" / "runtime.jsonl",
+                speaker="Witness",
+                text=stmt.get("text", ""),
+                source="phase_manager.TestimonyPhase"
+            )
+            
+        if self.cli_flagg:
+            input("\nPress Enter to proceed to Cross-Examination...")
+        else:
+            log_argument_options(
+                log_file= self.engine.repo_root / "logs" / "runtime.jsonl",
+                options=[{"intent": "Continue", "text": "Press Enter to proceed to Cross-Examination..."}],
+                source="phase_manager.TestimonyPhase"
+            )
+            self.streamlit_input()
         return self.engine.trial_state.next_phase_id(self.phase_id)
 
 
@@ -89,6 +131,13 @@ class CrossExaminationPhase(TrialPhase):
             print(f"\n--------------------------------------------------")
             print(f"Statement [{current_idx + 1}/{total_statements}]: \"{stmt.get('text')}\"")
             print(f"--------------------------------------------------")
+
+            log_statement(
+                log_file= self.engine.repo_root / "logs" / "runtime.jsonl",
+                statement_id=stmt.get("id", f"stmt_{current_idx}"),
+                text=stmt.get("text", ""),
+                source="phase_manager.CrossExaminationPhase"
+            )
             
             print(f">> Select your action for this statement:")
             print(" [1] Press Witness (Ask for more details)")
@@ -99,21 +148,42 @@ class CrossExaminationPhase(TrialPhase):
             print(" [Q] Quit Cross-Examination (Advance Phase)")
             print(" [Enter] Quick-move to Next Statement")
 
-            action_choice = input("Option: ").strip().lower()
+            log_argument_options(
+                log_file= self.engine.repo_root / "logs" / "runtime.jsonl",
+                options=[
+                    {"intent": "Press Witness", "text": "Ask the witness to elaborate or clarify this statement."},
+                    {"intent": "Brainstorm Strategy Lines", "text": "Think of possible arguments or strategies related to this statement."},
+                    {"intent": "Present Evidence", "text": "Use an item from your evidence inventory to try to contradict this statement."},
+                    {"intent": "Previous Statement", "text": "Go back to the previous statement in the testimony."},
+                    {"intent": "Next Statement", "text": "Advance to the next statement in the testimony."},
+                    {"intent": "Quit Cross-Examination", "text": "End the cross-examination phase and move on."}
+                ],
+                source="phase_manager.CrossExaminationPhase"
+            )
+            if self.cli_flagg:
+                action_choice = input("Option: ").strip().lower()
+            else:
+                action_choice = self.streamlit_input()
 
-            if action_choice == "a":
+            if action_choice == "a" or action_choice == "4":
                 current_idx = (current_idx - 1) % total_statements
                 continue
-            elif action_choice == "d" or action_choice == "":
+            elif action_choice == "d" or action_choice == "5":
                 current_idx = (current_idx + 1) % total_statements
                 continue
-            elif action_choice == "q":
+            elif action_choice == "q" or action_choice == "6":
                 break
 
             # --- PRESS WITNESS ---
             elif action_choice == "1":
                 if stmt.get("can_press"):
                     print(f"\n[DEFENSE ATTORNEY]: Hold it!")
+                    log_dialogue(
+                        log_file= self.engine.repo_root / "logs" / "runtime.jsonl",
+                        speaker="Defense [You]",
+                        text="Hold it!",
+                        source="phase_manager.CrossExaminationPhase"
+                    )
                     
                     # Generates dynamic interrogation when pressing
                     defense_press_line = "(Wait, something doesn't add up here...)"
@@ -140,6 +210,12 @@ class CrossExaminationPhase(TrialPhase):
                     
                     # Imprime a fala gerada para o jogador
                     print(f"[DEFENSE ATTORNEY]: \"{defense_press_line}\"")
+                    log_dialogue(
+                        log_file= self.engine.repo_root / "logs" / "runtime.jsonl",
+                        speaker="Defense [You]",
+                        text=defense_press_line,
+                        source="phase_manager.CrossExaminationPhase"
+                    )
                     print(f"--------------------------------------------------")
 
                     current_witness_id = testimony.get("witness_id")
@@ -159,13 +235,40 @@ class CrossExaminationPhase(TrialPhase):
                     if stress_level < 4:
                         press_msg = stmt.get("press_response", "...")
                         print(f"\n[{witness_name} (CALM)]: \"{press_msg}\"")
+                        log_dialogue(
+                            log_file= self.engine.repo_root / "logs" / "runtime.jsonl",
+                            speaker="Witness (CALM)",
+                            text=press_msg,
+                            source="phase_manager.CrossExaminationPhase"
+                        )
                     else:
                         dynamic_response = self.engine.dialogue_generator.generate_press_response(current_witness_id, stress_level)
                         print(f"\n{dynamic_response}")
+                        log_dialogue(
+                            log_file= self.engine.repo_root / "logs" / "runtime.jsonl",
+                            speaker="Witness (STRESSED)",
+                            text=dynamic_response,
+                            source="phase_manager.CrossExaminationPhase"
+                        )
                 else:
                     print(f"\n[DEFENSE ATTORNEY]: You press the statement, but the witness stands firm.")
+                    log_dialogue(
+                        log_file= self.engine.repo_root / "logs" / "runtime.jsonl",
+                        speaker="Defense [You]",
+                        text="You press the statement, but the witness stands firm.",
+                        source="phase_manager.CrossExaminationPhase"
+                    )
     
-                input("\nPress enter to return to the statement options...")
+                
+                if self.cli_flagg:
+                    input("\nPress enter to return to the statement options...")
+                else:
+                    log_argument_options(
+                        log_file= self.engine.repo_root / "logs" / "runtime.jsonl",
+                        options=[{"intent": "Continue", "text": "Press Enter to return to the statement options..."}],
+                        source="phase_manager.TestimonyPhase"
+                    )
+                    self.streamlit_input()
                 
             # --- BRAINSTORM STRATEGY LINES (LLM) ---
             elif action_choice == "2":
@@ -234,10 +337,21 @@ class CrossExaminationPhase(TrialPhase):
 
                 if verified_candidates:
                     print(f"\nSelect your Strategy Line (Verified Arguments):")
+                    options_list = []
                     for c_idx, cand in enumerate(verified_candidates):
                         print(f"  [{c_idx + 1}] ({cand.strategy.upper()}): {cand.argument}")
-        
-                    arg_choice = input("\nChoose an argument strategy: ").strip()
+                        options_list.append({"intent": cand.strategy, "text": cand.argument})
+                    log_argument_options(
+                        log_file= self.engine.repo_root / "logs" / "runtime.jsonl",
+                        options=options_list,
+                        source="phase_manager.CrossExaminationPhase.VerifiedCandidates"
+                    )
+
+                    if self.cli_flagg:
+                        arg_choice = input("\nChoose an argument strategy: ").strip()
+                    else:
+                        arg_choice = self.streamlit_input()
+
                     selected_idx = int(arg_choice) - 1 if arg_choice.isdigit() else 0
                     if 0 <= selected_idx < len(verified_candidates):
                         chosen_candidate = verified_candidates[selected_idx]
@@ -245,6 +359,12 @@ class CrossExaminationPhase(TrialPhase):
                         chosen_candidate = verified_candidates[0]
             
                     print(f"\n[DEFENSE ATTORNEY]: {chosen_candidate.argument}")
+                    log_dialogue(
+                        log_file= self.engine.repo_root / "logs" / "runtime.jsonl",
+                        speaker="Defense [You]",
+                        text=chosen_candidate.argument,
+                        source="phase_manager.CrossExaminationPhase.ChosenArgument"
+                    )
                     
                     from project.common.types import VerifierResult
                     is_valid_bool = VerifierResult(valid=True, reason="ok")
@@ -258,12 +378,33 @@ class CrossExaminationPhase(TrialPhase):
                     print("\n=== REACTIONS ON THE TRIAL ===")
                     for rx in npc_reactions:
                         print(f"[{rx.npc_name} ({rx.mood.upper()})]: {rx.text}")
+                        log_dialogue(
+                            log_file= self.engine.repo_root / "logs" / "runtime.jsonl",
+                            speaker=f"{rx.npc_name}",
+                            text=rx.text,
+                            source="phase_manager.CrossExaminationPhase.NPCReaction"
+                        )
 
                     current_witness_id = testimony.get("witness_id")
                     
                 else:
                     print("\n[DEFENSE ATTORNEY]: (None of my tactical arguments feel stable enough to say out loud right now.)")
-                input("\nPress enter to return to the statement options...")
+                    log_dialogue(
+                        log_file= self.engine.repo_root / "logs" / "runtime.jsonl",
+                        speaker="Defense [You]",
+                        text="(None of my tactical arguments feel stable enough to say out loud right now.)",
+                        source="phase_manager.CrossExaminationPhase.NoValidArguments"
+                    )
+                
+                if self.cli_flagg:
+                    input("\nPress enter to return to the statement options...")
+                else:
+                    log_argument_options(
+                        log_file= self.engine.repo_root / "logs" / "runtime.jsonl",
+                        options=[{"intent": "Continue", "text": "Press enter to return to the statement options..."}],
+                        source="phase_manager.TestimonyPhase"
+                    )
+                    self.streamlit_input()
 
             # --- PRESENT EVIDENCE (CONTRADICT) ---
             elif action_choice == "3":
@@ -272,10 +413,22 @@ class CrossExaminationPhase(TrialPhase):
                 if isinstance(evidence_list, dict):
                     evidence_list = list(evidence_list.values())
 
+                evidence_options = []
                 for e_idx, ev in enumerate(evidence_list):
                     print(f"  [{e_idx + 1}] {ev.get('id')}: {ev.get('name')}")
+                    evidence_options.append({"intent": "Present Evidence", "text": f"{ev.get('name')}"})
+                log_argument_options(
+                    log_file= self.engine.repo_root / "logs" / "runtime.jsonl",
+                    options=evidence_options,
+                    source="phase_manager.CrossExaminationPhase.EvidenceInventory"
+                )
                 
-                ev_choice = input("Select evidence number to present: ").strip()
+                if self.cli_flagg:
+                    ev_choice = input("Select evidence number to present: ").strip()
+                else:
+                    ev_choice = self.streamlit_input()
+
+
                 if ev_choice.isdigit():
                     ev_idx = int(ev_choice) - 1
                     if 0 <= ev_idx < len(evidence_list):
@@ -284,6 +437,12 @@ class CrossExaminationPhase(TrialPhase):
                         stmt_id = stmt.get("id")
                         
                         print(f"\n[Processing Action]: Presenting {evidence_id} against {stmt_id}...")
+                        log_evidence(
+                            log_file= self.engine.repo_root / "logs" / "runtime.jsonl",
+                            title=selected_evidence.get("name", "Unknown Evidence"),
+                            description=selected_evidence.get("description", ""),
+                            source="phase_manager.CrossExaminationPhase.PresentEvidence"
+                        )
                         
                         can_contradict_list = selected_evidence.get("can_contradict", [])
                         if isinstance(can_contradict_list, str):
@@ -293,8 +452,23 @@ class CrossExaminationPhase(TrialPhase):
 
                         if is_valid_contradiction:
                             print(f"\n💥 OBJECTION! That's a direct contradiction!")
+
+                            log_dialogue(
+                                log_file= self.engine.repo_root / "logs" / "runtime.jsonl",
+                                speaker="Defense [You]",
+                                text=f"\n💥 OBJECTION! That's a direct contradiction!",
+                                source="phase_manager.CrossExaminationPhase.ObjectionRaised"
+                            )
+
                             print(f"[JUDGE]: Sustained! The witness's statement cannot be true given the '{selected_evidence.get('name')}'!")
-    
+
+                            log_dialogue(
+                                log_file= self.engine.repo_root / "logs" / "runtime.jsonl",
+                                speaker="Judge",
+                                text=f"Sustained! The witness's statement cannot be true given the '{selected_evidence.get('name')}'!",
+                                source="phase_manager.CrossExaminationPhase.ContradictionSustained"
+                            )
+
                             fact_id = f"fact_{stmt_id}" 
                             if stmt_id == "stmt_3": fact_id = "fact_001"
                             elif stmt_id == "stmt_5": fact_id = "fact_002"
@@ -303,18 +477,54 @@ class CrossExaminationPhase(TrialPhase):
                             self.engine.trial_state.contradictions_found.append(stmt_id)
     
                             print(f"\n[ANALYSIS]: Based on this contradiction, the defense proved that the info in {stmt_id} is false.")
+                            log_dialogue(
+                                log_file= self.engine.repo_root / "logs" / "runtime.jsonl",
+                                speaker="Narrator",
+                                text=f"Based on this contradiction, the defense proved that the info in {stmt_id} is false.",
+                                source="phase_manager.CrossExaminationPhase.ContradictionNarration"
+                            )
                             print(f"Trial Verdict Progress: {self.engine.trial_state.verdict_progress * 100:.1f}%")
+                            log_dialogue(
+                                log_file= self.engine.repo_root / "logs" / "runtime.jsonl",
+                                speaker="Narrator",
+                                text=f"Trial Verdict Progress: {self.engine.trial_state.verdict_progress * 100:.1f}%",
+                                source="phase_manager.CrossExaminationPhase.VerdictProgress"
+                            )
     
                             current_witness_id = testimony.get("witness_id")
                             if current_witness_id in self.engine.trial_state.witness_states:
                                 self.engine.trial_state.witness_states[current_witness_id].apply_damage(4)
                                 print(f"[{self.engine.trial_state.witness_states[current_witness_id].name} STRESS]: {self.engine.trial_state.witness_states[current_witness_id].stress}/10")
 
-                            input("\nPress enter to advance with this advantage...")
+                            
+                            if self.cli_flagg:
+                                input("\nPress enter to advance with this advantage...")
+                            else:
+                                log_argument_options(
+                                    log_file= self.engine.repo_root / "logs" / "runtime.jsonl",
+                                    options=[{"intent": "Continue", "text": "Press enter to advance with this advantage..."}],
+                                    source="phase_manager.TestimonyPhase"
+                                )
+                                self.streamlit_input()
                             return self.engine.trial_state.next_phase_id(self.phase_id)
                         else:
                             print(f"\n[JUDGE]: Overruled! That evidence doesn't seem to contradict what the witness just said.")
-                            input("\nPress enter to return to the statement options...")
+                            log_dialogue(
+                                log_file= self.engine.repo_root / "logs" / "runtime.jsonl",
+                                speaker="Judge",
+                                text=f"Overruled! That evidence doesn't seem to contradict what the witness just said.",
+                                source="phase_manager.CrossExaminationPhase.ContradictionOverruled"
+                            )
+                                
+                            if self.cli_flagg:
+                                input("\nPress enter to return to the statement options...")
+                            else:
+                                log_argument_options(
+                                    log_file= self.engine.repo_root / "logs" / "runtime.jsonl",
+                                    options=[{"intent": "Continue", "text": "Press enter to return to the statement options..."}],
+                                    source="phase_manager.TestimonyPhase"
+                                )
+                                self.streamlit_input()
 
         return self.engine.trial_state.next_phase_id(self.phase_id)
 
@@ -323,6 +533,12 @@ class FinalDefensePhase(TrialPhase):
     def execute(self) -> str | None:
         print(f"\n=== FINAL DEFENSE: CLOSING ARGUMENT ===")
         print("[DEFENSE ATTORNEY]: Your Honor, based on all the evidence set out today...")
+        log_dialogue(
+            log_file= self.engine.repo_root / "logs" / "runtime.jsonl",
+            speaker="Defense [You]",
+            text="Your Honor, based on all the evidence set out today...",
+            source="phase_manager.FinalDefensePhase.OpeningStatement"
+        )
         
         discovered_fact_ids = self.engine.trial_state.discovered_facts
         facts_bundle = self.engine.bundle.get("truth", {}).get("facts", [])
@@ -365,10 +581,31 @@ class FinalDefensePhase(TrialPhase):
                 print(f"\n{resp['message']['content'].strip()}")
             except Exception as e:
                 print("\n[DEFENSE ATTORNEY]: The contradictions prove the absolute truth! The security footage clearly shows my client was framed by the very person standing behind him in line!")
+                log_dialogue(
+                    log_file= self.engine.repo_root / "logs" / "runtime.jsonl",
+                    speaker="Defense [You]",
+                    text="The contradictions prove the absolute truth! The security footage clearly shows my client was framed by the very person standing behind him in line!",
+                    source="phase_manager.FinalDefensePhase.DefaultClosingArgument"
+                )
+                    
         else:
             print("\n[DEFENSE ATTORNEY]: ...Unfortunately, the evidence gathered cannot fully counter the accusation.")
+            log_dialogue(
+                log_file= self.engine.repo_root / "logs" / "runtime.jsonl",
+                speaker="Defense [You]",
+                text="...Unfortunately, the evidence gathered cannot fully counter the accusation.",
+                source="phase_manager.FinalDefensePhase.NoFactsClosingArgument"
+            )
 
-        input("\nPress Enter to hear the Judge Veredict...")
+        if self.cli_flagg:
+            input("\nPress Enter to hear the Judge Veredict...")
+        else:
+            log_argument_options(
+                log_file= self.engine.repo_root / "logs" / "runtime.jsonl",
+                options=[{"intent": "Continue", "text": "Press Enter to hear the Judge Veredict..."}],
+                source="phase_manager.TestimonyPhase"
+            )
+            self.streamlit_input()
         return self.engine.trial_state.next_phase_id(self.phase_id)
 
 
