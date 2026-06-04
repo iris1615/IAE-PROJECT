@@ -118,11 +118,38 @@ class CrossExaminationPhase(TrialPhase):
             elif action_choice == "q":
                 break
 
-            # --- OPÇÃO 1: PRESS WITNESS ---
+            # --- OPÇÃO 1: PRESS WITNESS (DINÂMICO) ---
             elif action_choice == "1":
                 if stmt.get("can_press"):
                     print(f"\n[DEFENSE ATTORNEY]: Hold it!")
-    
+                    
+                    # ─── NOVO: GERAR INTERROGAÇÃO DINÂMICA DO ADVOGADO ───
+                    defense_press_line = "(Wait, something doesn't add up here...)"
+                    if self.engine.use_ollama:
+                        try:
+                            import ollama
+                            case_title = self.engine.bundle.get("case", {}).get("title", "Case")
+                            stmt_text = stmt.get("text", "")
+                            
+                            press_prompt = (
+                                f"You are the defense attorney in an Ace Attorney game style.\n"
+                                f"Case: {case_title}\n"
+                                f"The witness just stated: \"{stmt_text}\"\n"
+                                f"TASK:\n"
+                                f"Write a single sharp, inquisitive, or combative sentence that the defense attorney "
+                                f"says out loud to pressure the witness about this specific statement. "
+                                f"Keep it brief (max 1-2 sentences), professional yet dramatic. Do NOT include any meta-text, names or brackets."
+                            )
+                            
+                            resp = ollama.chat(model=self.engine.ollama_model, messages=[{"role": "user", "content": press_prompt}])
+                            defense_press_line = resp['message']['content'].strip().replace('"', '')
+                        except Exception:
+                            defense_press_line = f"Are you absolutely sure about that? Your account regarding '{stmt_text}' seems highly questionable!"
+                    
+                    # Imprime a fala gerada para o jogador
+                    print(f"[DEFENSE ATTORNEY]: \"{defense_press_line}\"")
+                    print(f"--------------------------------------------------")
+
                     current_witness_id = testimony.get("witness_id")
                     witness_state = self.engine.trial_state.witness_states.get(current_witness_id)
     
@@ -136,6 +163,7 @@ class CrossExaminationPhase(TrialPhase):
 
                     print(f"--- DEBUG: Witness Stress level {stress_level} ---")
                     
+                    # Reação da Testemunha baseado no Stress Acumulado
                     if stress_level < 4:
                         press_msg = stmt.get("press_response", "...")
                         print(f"\n[{witness_name} (CALM)]: \"{press_msg}\"")
@@ -146,6 +174,7 @@ class CrossExaminationPhase(TrialPhase):
                     print(f"\n[DEFENSE ATTORNEY]: You press the statement, but the witness stands firm.")
     
                 input("\nPress enter to return to the statement options...")
+                
             # --- OPÇÃO 2: BRAINSTORM STRATEGY LINES (LLM) ---
             elif action_choice == "2":
                 print(f"\n[Thinking...] Consulting your legal team about this specific statement...")
