@@ -1,0 +1,38 @@
+{
+  "$schema": "../../../schemas/testimony.schema.json",
+  "id": "testimony_person_in_line_1",
+  "_case_ref": "../case_001.json",
+  "_witness_ref": "../witnesses/witness_person_in_line.json",
+
+  "witness_id": "witness_person_in_line",
+
+  "topic": "What the witness observed in the coffee shop",
+
+  "statements": [
+    {
+      "id": "stmt_4",
+      "text": "I was just there getting my morning coffee, bro. Totally random, just in the wrong place at the wrong time, you know?",
+      "emotion": "confident",
+      "can_press": true,
+      "press_response": "I mean, I go there like, sometimes. It's a solid spot.",
+      "truthfulness": false
+    },
+    {
+      "id": "stmt_5",
+      "text": "I saw the dude pull out the bill himself from his own jacket pocket. Nobody was near him, it was just him fumbling around.",
+      "emotion": "confident",
+      "can_press": true,
+      "press_response": "Yeah, a hundred percent. He reached into his left pocket and pulled it out. Nobody else touched anything.",
+      "contradicted_by": "security_footage",
+      "truthfulness": false
+    },
+    {
+      "id": "stmt_6",
+      "text": "I've never even seen that guy before in my life. Total stranger to me.",
+      "emotion": "calm",
+      "can_press": true,
+      "press_response": "Look, I meet a lot of people for my podcast. I can't remember everyone.",
+      "truthfulness": false
+    }
+  ]
+}

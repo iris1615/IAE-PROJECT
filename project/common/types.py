@@ -34,6 +34,8 @@ class CandidateArgument:
     target_statement_id: str
     evidence_id: str
     argument: str
+    present_evidence: bool = True
+    presentation_score: float = 0.0
 
 
 @dataclass

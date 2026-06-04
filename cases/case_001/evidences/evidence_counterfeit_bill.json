@@ -1,0 +1,23 @@
+{
+  "$schema": "../../../schemas/evidence.schema.json",
+  "id": "counterfeit_bill",
+  "_case_ref": "../case_001.json",
+
+  "name": "Counterfeit Bill",
+
+  "description": "A counterfeit bill was found in the possession of the defendant, which he claimed was real. The bill was marked by the cashier and later identified as a fake. To the naked eye, the bill looks almost identical to a real one, but under closer inspection, it has several discrepancies that give away its true nature. The bill is made of a different material than real currency and has a different texture. The colors are slightly off, and the details are not as sharp as they should be. The bill also lacks the security features that are present in real currency, such as watermarks and security threads. Overall, the counterfeit bill is a convincing imitation, but it ultimately failed to pass the scrutiny of the cashier and was identified as fake.",
+
+  "type": "OBJECT",
+
+  "reveals": [
+    "counterfeit_nature_of_bill",
+    "defendant_claims_bill_is_real",
+    "innocence_of_defendant"
+  ],
+
+  "can_contradict": [
+    
+  ],
+
+  "court_record_visible": true
+}

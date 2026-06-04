@@ -1,0 +1,37 @@
+{
+  "$schema": "../../../schemas/witness.schema.json",
+  "id": "witness_person_in_line",
+  "_case_ref": "../case_001.json",
+
+  "role": "witness",
+
+  "name": "Shane Wallace",
+
+  "occupation": "Podcast Host",
+
+  "personality": {
+    "confidence": 8,
+    "honesty": 4,
+    "anxiety": 3
+  },
+
+  "hidden_information": [
+    "Is the culprit.",
+    "Has a podcast about crime stories and was looking for a new story to cover.",
+    "Has fun with the idea of being a witness and is enjoying the attention.",
+    "Has no affiliation with the defendant, he just thought the defendant looked like a good person to mess with."
+  ],
+
+  "behavior_rules": [
+    "Is confident and enjoys being in the spotlight.",
+    "Is not very honest and may exaggerate or fabricate details for entertainment value.",
+    "Is not very anxious and may not take the situation seriously."
+  ],
+
+  "speech_style": {
+    "hesitation": 2,
+    "formality": 5,
+    "dialect": "Frat-Bro Slang"
+
+  }
+}

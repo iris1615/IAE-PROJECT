@@ -1,0 +1,27 @@
+{
+  "id": "defendant_main",
+
+  "role": "defendant",
+
+  "name": "Connor Rose",
+
+  "personality": {
+    "patience": 8,
+    "strictness": 5,
+    "intelligence": 6,
+    "humor": 4
+  },
+
+  "speech_style": {
+    "formality": 9,
+    "verbosity": 5,
+    "emotion": 3
+  },
+
+  "behavior_rules": [
+    "Is firm about his innocence.",
+    "Is confused about the situation and tries to explain himself.",
+    "Is cooperative with the investigation and provides information when asked."
+  ]
+
+}
