@@ -180,7 +180,7 @@ class CrossExaminationPhase(TrialPhase):
                     print(f"\n[DEFENSE ATTORNEY]: Hold it!")
                     log_dialogue(
                         log_file= self.engine.repo_root / "logs" / "runtime.jsonl",
-                        speaker="Defense [You]",
+                        speaker="Connor Rose[You]",
                         text="Hold it!",
                         source="phase_manager.CrossExaminationPhase"
                     )
@@ -212,7 +212,7 @@ class CrossExaminationPhase(TrialPhase):
                     print(f"[DEFENSE ATTORNEY]: \"{defense_press_line}\"")
                     log_dialogue(
                         log_file= self.engine.repo_root / "logs" / "runtime.jsonl",
-                        speaker="Defense [You]",
+                        speaker="Connor Rose[You]",
                         text=defense_press_line,
                         source="phase_manager.CrossExaminationPhase"
                     )
@@ -254,7 +254,7 @@ class CrossExaminationPhase(TrialPhase):
                     print(f"\n[DEFENSE ATTORNEY]: You press the statement, but the witness stands firm.")
                     log_dialogue(
                         log_file= self.engine.repo_root / "logs" / "runtime.jsonl",
-                        speaker="Defense [You]",
+                        speaker="Connor Rose[You]",
                         text="You press the statement, but the witness stands firm.",
                         source="phase_manager.CrossExaminationPhase"
                     )
@@ -361,7 +361,7 @@ class CrossExaminationPhase(TrialPhase):
                     print(f"\n[DEFENSE ATTORNEY]: {chosen_candidate.argument}")
                     log_dialogue(
                         log_file= self.engine.repo_root / "logs" / "runtime.jsonl",
-                        speaker="Defense [You]",
+                        speaker="Connor Rose[You]",
                         text=chosen_candidate.argument,
                         source="phase_manager.CrossExaminationPhase.ChosenArgument"
                     )
@@ -391,7 +391,7 @@ class CrossExaminationPhase(TrialPhase):
                     print("\n[DEFENSE ATTORNEY]: (None of my tactical arguments feel stable enough to say out loud right now.)")
                     log_dialogue(
                         log_file= self.engine.repo_root / "logs" / "runtime.jsonl",
-                        speaker="Defense [You]",
+                        speaker="Connor Rose[You]",
                         text="(None of my tactical arguments feel stable enough to say out loud right now.)",
                         source="phase_manager.CrossExaminationPhase.NoValidArguments"
                     )
@@ -455,7 +455,7 @@ class CrossExaminationPhase(TrialPhase):
 
                             log_dialogue(
                                 log_file= self.engine.repo_root / "logs" / "runtime.jsonl",
-                                speaker="Defense [You]",
+                                speaker="Connor Rose[You]",
                                 text=f"\n💥 OBJECTION! That's a direct contradiction!",
                                 source="phase_manager.CrossExaminationPhase.ObjectionRaised"
                             )
@@ -464,7 +464,7 @@ class CrossExaminationPhase(TrialPhase):
 
                             log_dialogue(
                                 log_file= self.engine.repo_root / "logs" / "runtime.jsonl",
-                                speaker="Judge",
+                                speaker="Judge Judy",
                                 text=f"Sustained! The witness's statement cannot be true given the '{selected_evidence.get('name')}'!",
                                 source="phase_manager.CrossExaminationPhase.ContradictionSustained"
                             )
@@ -511,7 +511,7 @@ class CrossExaminationPhase(TrialPhase):
                             print(f"\n[JUDGE]: Overruled! That evidence doesn't seem to contradict what the witness just said.")
                             log_dialogue(
                                 log_file= self.engine.repo_root / "logs" / "runtime.jsonl",
-                                speaker="Judge",
+                                speaker="Judge Judy",
                                 text=f"Overruled! That evidence doesn't seem to contradict what the witness just said.",
                                 source="phase_manager.CrossExaminationPhase.ContradictionOverruled"
                             )
@@ -535,7 +535,7 @@ class FinalDefensePhase(TrialPhase):
         print("[DEFENSE ATTORNEY]: Your Honor, based on all the evidence set out today...")
         log_dialogue(
             log_file= self.engine.repo_root / "logs" / "runtime.jsonl",
-            speaker="Defense [You]",
+            speaker="Connor Rose[You]",
             text="Your Honor, based on all the evidence set out today...",
             source="phase_manager.FinalDefensePhase.OpeningStatement"
         )
@@ -583,7 +583,7 @@ class FinalDefensePhase(TrialPhase):
                 print("\n[DEFENSE ATTORNEY]: The contradictions prove the absolute truth! The security footage clearly shows my client was framed by the very person standing behind him in line!")
                 log_dialogue(
                     log_file= self.engine.repo_root / "logs" / "runtime.jsonl",
-                    speaker="Defense [You]",
+                    speaker="Connor Rose[You]",
                     text="The contradictions prove the absolute truth! The security footage clearly shows my client was framed by the very person standing behind him in line!",
                     source="phase_manager.FinalDefensePhase.DefaultClosingArgument"
                 )
@@ -592,7 +592,7 @@ class FinalDefensePhase(TrialPhase):
             print("\n[DEFENSE ATTORNEY]: ...Unfortunately, the evidence gathered cannot fully counter the accusation.")
             log_dialogue(
                 log_file= self.engine.repo_root / "logs" / "runtime.jsonl",
-                speaker="Defense [You]",
+                speaker="Connor Rose[You]",
                 text="...Unfortunately, the evidence gathered cannot fully counter the accusation.",
                 source="phase_manager.FinalDefensePhase.NoFactsClosingArgument"
             )
