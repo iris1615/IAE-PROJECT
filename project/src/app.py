@@ -2,23 +2,27 @@ import streamlit as st
 import time
 import sys
 from pathlib import Path
+from streamlit_autorefresh import st_autorefresh
+from PIL import Image
+
 
 # When running `streamlit run project/src/app.py`, Streamlit adds `project/src` to sys.path.
 # Ensure the repo root is also on sys.path so `import project...` resolves correctly.
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
-
+    
 from project.common.log_events import read_argument_options_events, read_dialogue_events, read_evidence_events, read_statement_events ,log_input, reset_log_events, log_user_info
 
 # Streamlit requires page configuration to be set before other UI calls.
 st.set_page_config(page_title="Ace Attorney AI", layout="wide")
 
-# Timed refresh: re-run the script periodically so the UI reflects new backend events.
-# Interval is in milliseconds.
-from streamlit_autorefresh import st_autorefresh
+st_autorefresh(interval=1000, key="timed_refresh")
 
-st_autorefresh(interval=2000, key="timed_refresh")
+
+def _repo_root() -> Path:
+    # project/src/app.py -> parents[2] is repo root
+    return Path(__file__).resolve().parents[2]
 
 # 1. INITIALIZE GAME STATE
 # We use st.session_state so data survives the top-to-bottom script re-runs.
@@ -28,12 +32,10 @@ if "dialogue_history" not in st.session_state:
     st.session_state.dialogue_history = []
 if "telemetry_log" not in st.session_state:
     st.session_state.telemetry_log = []
-
-
-def _repo_root() -> Path:
-    # project/src/app.py -> parents[2] is repo root
-    return Path(__file__).resolve().parents[2]
-
+if "courtroom_image" not in st.session_state:
+    st.session_state.courtroom_image = str(_repo_root() / "project" / "assets" / "courtroom.png")
+if "caption" not in st.session_state:
+    st.session_state.caption = "Welcome to the courtroom! Awaiting the judge's opening statement."
 
 def _runtime_log_path() -> Path:
     return _repo_root() / "project" / "logs" / "runtime.jsonl"
@@ -50,6 +52,24 @@ def log_telemetry(action_type, detail):
         "action": action_type,
         "detail": detail
     })
+
+def set_image(path, caption):
+    st.session_state.courtroom_image = path
+    st.session_state.caption = caption
+
+def overlay_images(bottom_path, top_path):
+    # Open both images
+    bottom_img = Image.open(bottom_path).convert("RGBA")
+    top_img = Image.open(top_path).convert("RGBA")
+    
+    # Resize top image to perfectly match the bottom image size if they differ
+    top_img = top_img.resize(bottom_img.size)
+    
+    # Paste the top image directly over the bottom image 
+    # (The second top_img acts as a transparency mask so alpha channels work!)
+    combined_img = Image.alpha_composite(bottom_img, top_img)
+    
+    return combined_img
 
 with st.container():
     # 2. CONFIGURE THE PAGE LAYOUT
@@ -74,9 +94,8 @@ with st.container():
                 _render_evidence_card(ev["title"], ev["description"])
 
     with mid_col:
-        st.header(" ")
-        st.empty()
-
+        st.image(st.session_state.courtroom_image, caption=st.session_state.caption, use_column_width=True)
+    
     with right_col:
         st.subheader("💬 Courtroom Dialogue")
         # Container keeps the history visually clean
@@ -84,16 +103,28 @@ with st.container():
         with dialogue_container:
             backend_dialogue = read_dialogue_events(_runtime_log_path())
             for line in (st.session_state.dialogue_history + backend_dialogue):
-                if line["speaker"].upper() == "JUDGE":
+                if "JUDGE JUDY" in line["speaker"].upper():
                     st.markdown(f"👨‍⚖️ **{line['speaker']}:** *\"{line['text']}\"*")
-                elif line["speaker"].upper() == "NARRATOR":
+                    set_image(str(_repo_root() / "project" / "assets" / "judge.png"), f"👨‍⚖️ **{line['speaker']}:** *\"{line['text']}\"*")
+                elif "NARRATOR" in line["speaker"].upper():
                     st.markdown(f"🎙️ **{line['speaker']}:** *\"{line['text']}\"*")
-                elif line["speaker"].upper() == "PROSECUTOR":
+                    set_image(str(_repo_root() / "project" / "assets" / "courtroom.png"), f"🎙️ **{line['speaker']}:** *\"{line['text']}\"*")
+                elif "LUCIEN VALEN" in line["speaker"].upper() or "PROSECUTOR" in line["speaker"].upper():
                     st.markdown(f"🧣 **{line['speaker']}:** *\"{line['text']}\"*")
-                elif line["speaker"].upper() == "WITNESS":
-                    st.markdown(f"👩🏻‍🦰 **{line['speaker']}:** *\"{line['text']}\"*")
-                else:
+                    if "OBJECTION" in line['text'].upper():
+                        set_image(overlay_images(str(_repo_root() / "project" / "assets" / "prosecutor.png"), str(_repo_root() / "project" / "assets" / "objection.png")), f"🧣 **{line['speaker']}:** *\"{line['text']}\"*")
+                    else:
+                        set_image(str(_repo_root() / "project" / "assets" / "prosecutor.png"), f"🧣 **{line['speaker']}:** *\"{line['text']}\"*")
+                elif "CONNOR ROSE[YOU]" in line["speaker"].upper():
                     st.markdown(f"🔵 **{line['speaker']}:** *\"{line['text']}\"*")
+                    if "Hold it!" in line['text']:
+                        set_image(overlay_images(str(_repo_root() / "project" / "assets" / "player.png"), str(_repo_root() / "project" / "assets" / "holdit.png")), f"🔵 **{line['speaker']}:** *\"{line['text']}\"*")
+                    else:
+                        set_image(str(_repo_root() / "project" / "assets" / "player.png"), f"🔵 **{line['speaker']}:** *\"{line['text']}\"*")
+                else:
+                    st.markdown(f"👩🏻‍🦰 **{line['speaker']}:** *\"{line['text']}\"*")
+                    set_image(str(_repo_root() / "project" / "assets" / "witness.png"), f"👩🏻‍🦰 **{line['speaker']}:** *\"{line['text']}\"*")
+                    
 
 with st.container(border=True):
     # 5. SENSEMAKING INTERFACE: PRESENTING THE K CANDIDATES
@@ -103,7 +134,6 @@ with st.container(border=True):
     backend_options = (backend_options_events[-1].get("options") if backend_options_events else None) or []
 
     candidates = backend_options
-
     statement = read_statement_events(_runtime_log_path())
     if statement:
         st.markdown(f"**Current Statement:** {statement[-1]['text']}")
