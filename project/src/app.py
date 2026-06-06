@@ -99,7 +99,7 @@ with st.container():
     with right_col:
         st.subheader("💬 Courtroom Dialogue")
         # Container keeps the history visually clean
-        dialogue_container = st.container(height=450, border=True)
+        dialogue_container = st.container(height=450, border=True, autoscroll=True)
         with dialogue_container:
             backend_dialogue = read_dialogue_events(_runtime_log_path())
             for line in (st.session_state.dialogue_history + backend_dialogue):

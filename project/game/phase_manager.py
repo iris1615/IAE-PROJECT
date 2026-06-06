@@ -46,7 +46,7 @@ class IntroPhase(TrialPhase):
         else:
             log_argument_options(
                 log_file= self.engine.repo_root / "logs" / "runtime.jsonl",
-                options=[{"intent": "Continue", "text": "Press Enter to continue to the testimony..."}],
+                options=[{"intent": "Continue", "text": "Click \"Present\" to return to the statement options..."}],
                 source="phase_manager.IntroPhase"
             )
             self.streamlit_input()
@@ -87,7 +87,7 @@ class TestimonyPhase(TrialPhase):
         else:
             log_argument_options(
                 log_file= self.engine.repo_root / "logs" / "runtime.jsonl",
-                options=[{"intent": "Continue", "text": "Press Enter to proceed to Cross-Examination..."}],
+                options=[{"intent": "Continue", "text": "Click \"Present\" to return to the statement options..."}],
                 source="phase_manager.TestimonyPhase"
             )
             self.streamlit_input()
@@ -265,7 +265,7 @@ class CrossExaminationPhase(TrialPhase):
                 else:
                     log_argument_options(
                         log_file= self.engine.repo_root / "logs" / "runtime.jsonl",
-                        options=[{"intent": "Continue", "text": "Press Enter to return to the statement options..."}],
+                        options=[{"intent": "Continue", "text": "Click \"Present\" to return to the statement options..."}],
                         source="phase_manager.TestimonyPhase"
                     )
                     self.streamlit_input()
@@ -273,6 +273,12 @@ class CrossExaminationPhase(TrialPhase):
             # --- BRAINSTORM STRATEGY LINES (LLM) ---
             elif action_choice == "2":
                 print(f"\n[Thinking...] Consulting your legal team about this specific statement...")
+                log_dialogue(
+                    log_file= self.engine.repo_root / "logs" / "runtime.jsonl",
+                    speaker="Connor Rose[You]",
+                    text="[Thinking...] Consulting your legal team about this specific statement... (PLEASE WAIT...)",
+                    source="phase_manager.CrossExaminationPhase.BrainstormingStart"
+                )
                 retrieved_chunks = self.engine.retriever.similarity_search(stmt.get('text'), k=3)
                 
                 from project.common.types import TrialContext
@@ -369,6 +375,12 @@ class CrossExaminationPhase(TrialPhase):
                     from project.common.types import VerifierResult
                     is_valid_bool = VerifierResult(valid=True, reason="ok")
 
+                    log_dialogue(
+                        log_file= self.engine.repo_root / "logs" / "runtime.jsonl",
+                        speaker="Narrator",
+                        text="The courtroom reacts to your argument choice... (PLEASE WAIT...)",
+                        source="phase_manager.CrossExaminationPhase.ArgumentReaction"
+                    )
                     npc_reactions = self.engine.reaction_generator.generate_reactions(
                         chosen_candidate,   
                         is_valid_bool,      
@@ -401,7 +413,7 @@ class CrossExaminationPhase(TrialPhase):
                 else:
                     log_argument_options(
                         log_file= self.engine.repo_root / "logs" / "runtime.jsonl",
-                        options=[{"intent": "Continue", "text": "Press enter to return to the statement options..."}],
+                        options=[{"intent": "Continue", "text": "Click \"Present\" to return to the statement options..."}],
                         source="phase_manager.TestimonyPhase"
                     )
                     self.streamlit_input()
@@ -502,7 +514,7 @@ class CrossExaminationPhase(TrialPhase):
                             else:
                                 log_argument_options(
                                     log_file= self.engine.repo_root / "logs" / "runtime.jsonl",
-                                    options=[{"intent": "Continue", "text": "Press enter to advance with this advantage..."}],
+                                    options=[{"intent": "Continue", "text": "Click \"Present\" to return to the statement options..."}],
                                     source="phase_manager.TestimonyPhase"
                                 )
                                 self.streamlit_input()
@@ -521,7 +533,7 @@ class CrossExaminationPhase(TrialPhase):
                             else:
                                 log_argument_options(
                                     log_file= self.engine.repo_root / "logs" / "runtime.jsonl",
-                                    options=[{"intent": "Continue", "text": "Press enter to return to the statement options..."}],
+                                    options=[{"intent": "Continue", "text": "Click \"Present\" to return to the statement options..."}],
                                     source="phase_manager.TestimonyPhase"
                                 )
                                 self.streamlit_input()
@@ -602,7 +614,7 @@ class FinalDefensePhase(TrialPhase):
         else:
             log_argument_options(
                 log_file= self.engine.repo_root / "logs" / "runtime.jsonl",
-                options=[{"intent": "Continue", "text": "Press Enter to hear the Judge Veredict..."}],
+                options=[{"intent": "Continue", "text": "Click \"Present\" to return to the statement options..."}],
                 source="phase_manager.TestimonyPhase"
             )
             self.streamlit_input()
