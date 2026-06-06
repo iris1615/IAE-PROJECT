@@ -71,13 +71,14 @@ class TestimonyPhase(TrialPhase):
             testimony = list(testimonies_dict.values())[0]
 
         actual_witness = testimony.get("witness_id", witness_id)
+        witness_name = testimony.get("witness_name", "Unknown Witness")
         print(f"\n=== TESTIMONY PHASE: {actual_witness.upper()} ===")
         for stmt in testimony.get("statements", []):
             print(f"  [{stmt.get('id')}]: \"{stmt.get('text')}\"")
             
             log_dialogue(
                 log_file= self.engine.repo_root / "logs" / "runtime.jsonl",
-                speaker="Witness",
+                speaker= witness_name,
                 text=stmt.get("text", ""),
                 source="phase_manager.TestimonyPhase"
             )
@@ -237,7 +238,7 @@ class CrossExaminationPhase(TrialPhase):
                         print(f"\n[{witness_name} (CALM)]: \"{press_msg}\"")
                         log_dialogue(
                             log_file= self.engine.repo_root / "logs" / "runtime.jsonl",
-                            speaker="Witness (CALM)",
+                            speaker=f"{witness_name} (CALM)",
                             text=press_msg,
                             source="phase_manager.CrossExaminationPhase"
                         )
@@ -246,7 +247,7 @@ class CrossExaminationPhase(TrialPhase):
                         print(f"\n{dynamic_response}")
                         log_dialogue(
                             log_file= self.engine.repo_root / "logs" / "runtime.jsonl",
-                            speaker="Witness (STRESSED)",
+                            speaker=f"{witness_name} (STRESSED)",
                             text=dynamic_response,
                             source="phase_manager.CrossExaminationPhase"
                         )
