@@ -592,6 +592,12 @@ class FinalDefensePhase(TrialPhase):
                     options={"temperature": 0.5}  # Temperatura mais baixa reduz a alucinação!
                 )
                 print(f"\n{resp['message']['content'].strip()}")
+                log_dialogue(
+                    log_file= self.engine.repo_root / "logs" / "runtime.jsonl",
+                    speaker="Connor Rose[You]",
+                    text=resp['message']['content'].strip(),
+                    source="phase_manager.FinalDefensePhase.OllamaClosingArgument"
+                )
             except Exception as e:
                 print("\n[DEFENSE ATTORNEY]: The contradictions prove the absolute truth! The security footage clearly shows my client was framed by the very person standing behind him in line!")
                 log_dialogue(

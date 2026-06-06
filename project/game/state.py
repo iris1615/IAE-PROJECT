@@ -4,6 +4,7 @@ import json
 import sys
 from pathlib import Path
 from typing import List, Dict, Any, Set
+from project.common.log_events import log_dialogue
 
 class WitnessState:
     def __init__(self, w_id: str, name: str, data: dict):
@@ -54,8 +55,20 @@ class TrialState:
     def apply_penalty(self, amount: int = 1):
         self.penalties += amount
         print(f"\n[ PENALTY]: The Judge bangs the gavel! Penalties: {self.penalties}/{self.max_penalties}")
+        log_dialogue(
+            log_file= Path(__file__).resolve().parents[1] / "logs" / "runtime.jsonl",
+            speaker="Narrator",
+            text=f"The Judge bangs the gavel! Penalties: {self.penalties}/{self.max_penalties}",
+            source="TrialState.apply_penalty"
+        )
         if self.penalties >= self.max_penalties:
             print("\n GAVEL BANG! Game Over: The defendant was found GUILTY due to defense misconduct.")
+            log_dialogue(
+                log_file= Path(__file__).resolve().parents[1] / "logs" / "runtime.jsonl",
+                speaker="Narrator",
+                text="GAVEL BANG! Game Over: The defendant was found GUILTY due to defense misconduct.",
+                source="TrialState.apply_penalty"
+            )
             sys.exit(0)
 
     def next_phase_id(self, current_phase_id: str) -> str | None:
@@ -73,8 +86,20 @@ class TrialState:
             success = all(c in self.contradictions_found for c in reqs) or len(self.contradictions_found) > 0
             if success:
                 print("\n[VERDICT]: Irrefutable evidence presented! The Defendant is... ACQUITTED (NOT GUILTY)!")
+                log_dialogue(
+                    log_file= Path(__file__).resolve().parents[1] / "logs" / "runtime.jsonl",
+                    speaker="Judge Judy",
+                    text="Irrefutable evidence presented! The Defendant is... ACQUITTED (NOT GUILTY)!",
+                    source="TrialState.next_phase_id"
+                )
             else:
                 print("\n[VERDICT]: Insufficient contradictions raised. The Defendant is... GUILTY!")
+                log_dialogue(
+                    log_file= Path(__file__).resolve().parents[1] / "logs" / "runtime.jsonl",
+                    speaker="Judge Judy",
+                    text="Insufficient contradictions raised. The Defendant is... GUILTY!",
+                    source="TrialState.next_phase_id"
+                )
             return None
 
         return next_phase["id"]
