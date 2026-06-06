@@ -1,4 +1,3 @@
-
 # AI Courtroom Core Pipeline (MVP)
 
 Small, modular, and demonstrable pipeline for grounded courtroom dialogue driven by Local LLMs (Ollama) and Symbolic Verification.
@@ -44,7 +43,7 @@ pip install -r project/requirements.txt
 
 **Bash**
 
-```
+```bash
 python -m project.main --case-id case_001
 ```
 
@@ -54,6 +53,20 @@ python -m project.main --case-id case_001
 
 ```bash
 python -m project.main --case-id case_001 --query "Challenge witness statement stmt_3"
+```
+
+# Running Streamlit app
+
+In a terminal window on the folder project/src run the following command:
+
+```bash
+streamlit run app.py
+```
+
+Then, open another terminal to run the backend at the same time using the same command above:
+
+```bash
+python -m project.main --case-id case_001
 ```
 
 ## System Mechanics & Balance Updates
@@ -74,17 +87,20 @@ The final `Closing Argument` is generated using a lower `temperature=0.5` settin
 
 * If `ollama` is not running or a model timeout occurs, the codebase automatically catches the exception and falls back to local, template-based deterministic responses so the game loop never crashes. Use `--no-ollama` to force this testing environment.
 * To run the update the database just run the setup_chroma.py:
-
-` ```  python setup_chroma.py `
+  ```
+  python setup_chroma.py
+  ```
 
 ### Input for the game
 
 * in phase_manager.py there is a flagg (cli_flagg) that turns the input mode to either CLI or UI
 * cli_flagg = True - input mode turned to cli
 * cli_flagg = Flase - input mode turned to ui
-To run the UI just run in a terminal: streamlit run project/src/app.py  
+  To run the UI just run in a terminal: streamlit run project/src/app.py
 
 ## Reset app state
+
 * In the UI, at the debug area, there is 2 buttons:
+
 - The first, reset app state, clear the streamlit variables, runtime.jsonl and input.jsonl, bassicly reseting the ui part of the current session, it doesnt reset the session, it just doesnt show history data.
 - The second, reset user data, clears the user_info.json, deleting all the user data (action done and specific time)
