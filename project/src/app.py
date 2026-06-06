@@ -122,8 +122,12 @@ with st.container():
                     else:
                         set_image(str(_repo_root() / "project" / "assets" / "player.png"), f"🔵 **{line['speaker']}:** *\"{line['text']}\"*")
                 else:
-                    st.markdown(f"👩🏻‍🦰 **{line['speaker']}:** *\"{line['text']}\"*")
-                    set_image(str(_repo_root() / "project" / "assets" / "witness.png"), f"👩🏻‍🦰 **{line['speaker']}:** *\"{line['text']}\"*")
+                    if "SHANE" in line["speaker"].upper():
+                        st.markdown(f"👩🏻‍🦰 **{line['speaker']}:** *\"{line['text']}\"*")
+                        set_image(str(_repo_root() / "project" / "assets" / "witness.png"), f"👩🏻‍🦰 **{line['speaker']}:** *\"{line['text']}\"*")  
+                    else:
+                        st.markdown(f"👨‍🦰 **{line['speaker']}:** *\"{line['text']}\"*")
+                        set_image(str(_repo_root() / "project" / "assets" / "witness2.png"), f"👨‍🦰 **{line['speaker']}:** *\"{line['text']}\"*")
                     
 
 with st.container(border=True):
